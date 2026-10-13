@@ -1,0 +1,103 @@
+{
+  "name": "archimate-viewer",
+  "displayName": "ArchiMate Viewer",
+  "description": "View Open Group ArchiMate Model Exchange files in VS Code, powered by an embeddable bpmn-js-style JavaScript viewer.",
+  "version": "0.1.0",
+  "publisher": "fideocam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fideocam/ArchimateViewer"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "archimate",
+    "architecture",
+    "viewer",
+    "opengroup",
+    "diagram"
+  ],
+  "activationEvents": [
+    "onCustomEditor:archimate.viewer",
+    "onCommand:archimate.openViewer"
+  ],
+  "main": "./out/extension/extension.js",
+  "browser": "./out/extension/extension.js",
+  "exports": {
+    ".": "./out/viewer/index.js",
+    "./lib/Viewer": "./out/viewer/Viewer.js",
+    "./lib/NavigatedViewer": "./out/viewer/NavigatedViewer.js"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "archimate.openViewer",
+        "title": "Open Viewer",
+        "category": "ArchiMate"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "archimate.openViewer",
+          "when": "resourceExtname == .xml || resourceExtname == .archimate",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "archimate.openViewer",
+          "when": "resourceExtname == .xml || resourceExtname == .archimate",
+          "group": "navigation"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "archimate.viewer",
+        "displayName": "ArchiMate Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.archimate"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "archimate.viewer",
+        "displayName": "ArchiMate Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.xml"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run compile:ext && npm run compile:web && npm run compile:lib",
+    "compile:ext": "tsc -p tsconfig.extension.json",
+    "compile:web": "esbuild src/webview/editor.ts --bundle --outfile=out/webview/editor.js --format=iife --platform=browser --sourcemap && cp src/webview/editor.css out/webview/editor.css",
+    "compile:lib": "esbuild src/viewer/browser.ts --bundle --outfile=dist/archimate-viewer.js --format=iife --platform=browser --sourcemap && esbuild src/viewer/index.ts --bundle --outfile=dist/archimate-viewer.esm.js --format=esm --platform=browser --sourcemap && tsc -p tsconfig.viewer.json",
+    "watch": "npm run compile:ext -- --watch",
+    "test": "tsx --test test/*.test.ts",
+    "demo": "npm run compile:lib && npx --yes serve -l 4173 .",
+    "package": "npx --yes @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.25.2",
+    "linkedom": "^0.18.12",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArchiMate Viewer demo</title>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+    #toolbar {
+      display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+      border-bottom: 1px solid #ddd; background: #f4f4f2;
+    }
+    #toolbar strong { margin-right: auto; }
+    #canvas { height: calc(100% - 49px); }
+    #canvas.drop { outline: 3px dashed #3a7; outline-offset: -8px; }
+    input[type=file] { max-width: 220px; }
+    button, select { font: inherit; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <strong>ArchiMate Viewer</strong>
+    <button id="sample1" type="button">Load claims sample</button>
+    <button id="sample2" type="button">Load relationships sample</button>
+    <label>Open <input id="file" type="file" accept=".xml,.archimate,text/xml" /></label>
+    <label>View <select id="views"></select></label>
+    <button id="fit" type="button">Fit</button>
+    <span id="status"></span>
+  </div>
+  <div id="canvas"></div>
+  <script src="../dist/archimate-viewer.js"></script>
+  <script>
+    const viewer = new ArchiMateJS({ container: "#canvas" });
+    const status = document.getElementById("status");
+    const views = document.getElementById("views");
+    const canvas = document.getElementById("canvas");
+
+    async function openXml(xml) {
+      try {
+        const result = await viewer.importXML(xml);
+        const model = viewer.get("model");
+        views.innerHTML = model.views.map((v) =>
+          `<option value="${v.identifier}">${v.name}</option>`
+        ).join("");
+        viewer.get("canvas").zoom("fit-viewport");
+        status.textContent = result.warnings.length
+          ? result.warnings.join("; ")
+          : model.name;
+      } catch (err) {
+        status.textContent = String(err);
+      }
+    }
+
+    async function loadSample(path) {
+      const xml = await fetch(path).then((r) => r.text());
+      await openXml(xml);
+    }
+
+    document.getElementById("sample1").onclick = () => loadSample("../samples/archinsurance-claims.xml");
+    document.getElementById("sample2").onclick = () => loadSample("../samples/relationships.xml");
+    document.getElementById("fit").onclick = () => viewer.get("canvas").zoom("fit-viewport");
+    views.onchange = () => viewer.openView(views.value).then(() => viewer.get("canvas").zoom("fit-viewport"));
+    document.getElementById("file").onchange = async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (file) await openXml(await file.text());
+    };
+
+    ["dragenter", "dragover"].forEach((name) => {
+      canvas.addEventListener(name, (event) => {
+        event.preventDefault();
+        canvas.classList.add("drop");
+      });
+    });
+    ["dragleave", "drop"].forEach((name) => {
+      canvas.addEventListener(name, (event) => {
+        event.preventDefault();
+        canvas.classList.remove("drop");
+      });
+    });
+    canvas.addEventListener("drop", async (event) => {
+      const file = event.dataTransfer && event.dataTransfer.files[0];
+      if (file) await openXml(await file.text());
+    });
+
+    loadSample("../samples/archinsurance-claims.xml");
+  </script>
+</body>
+</html>

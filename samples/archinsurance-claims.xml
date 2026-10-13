@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       identifier="id-model-claims">
+  <name xml:lang="en">ArchInsurance Claims</name>
+  <documentation xml:lang="en">Sample Open Group ArchiMate 3 exchange model for the viewer.</documentation>
+  <elements>
+    <element identifier="id-customer" xsi:type="BusinessActor">
+      <name xml:lang="en">Customer</name>
+    </element>
+    <element identifier="id-clerk" xsi:type="BusinessRole">
+      <name xml:lang="en">Claims Clerk</name>
+    </element>
+    <element identifier="id-register" xsi:type="BusinessProcess">
+      <name xml:lang="en">Register Claim</name>
+    </element>
+    <element identifier="id-claim" xsi:type="BusinessObject">
+      <name xml:lang="en">Claim</name>
+    </element>
+    <element identifier="id-claim-svc" xsi:type="ApplicationService">
+      <name xml:lang="en">Claim File Service</name>
+    </element>
+    <element identifier="id-claim-app" xsi:type="ApplicationComponent">
+      <name xml:lang="en">Claim Management</name>
+    </element>
+    <element identifier="id-claim-fn" xsi:type="ApplicationFunction">
+      <name xml:lang="en">Process Claim</name>
+    </element>
+    <element identifier="id-claim-data" xsi:type="DataObject">
+      <name xml:lang="en">Claim Data</name>
+    </element>
+    <element identifier="id-db-node" xsi:type="Node">
+      <name xml:lang="en">Database Server</name>
+    </element>
+    <element identifier="id-postgres" xsi:type="SystemSoftware">
+      <name xml:lang="en">PostgreSQL</name>
+    </element>
+    <element identifier="id-claim-db" xsi:type="Artifact">
+      <name xml:lang="en">Claim DB</name>
+    </element>
+    <element identifier="id-goal" xsi:type="Goal">
+      <name xml:lang="en">Faster Settlements</name>
+    </element>
+    <element identifier="id-req" xsi:type="Requirement">
+      <name xml:lang="en">Register in 5 minutes</name>
+    </element>
+    <element identifier="id-and" xsi:type="AndJunction">
+      <name xml:lang="en"></name>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r-assign" source="id-clerk" target="id-register" xsi:type="Assignment">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-trigger" source="id-customer" target="id-register" xsi:type="Triggering">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-access" source="id-register" target="id-claim" xsi:type="Access" accessType="Write">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-serve" source="id-claim-svc" target="id-register" xsi:type="Serving">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-real" source="id-claim-app" target="id-claim-svc" xsi:type="Realization">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-comp" source="id-claim-app" target="id-claim-fn" xsi:type="Composition">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-agg" source="id-claim-app" target="id-claim-data" xsi:type="Aggregation">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-assign-sw" source="id-db-node" target="id-postgres" xsi:type="Assignment">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-assign-art" source="id-postgres" target="id-claim-db" xsi:type="Assignment">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-serve-data" source="id-claim-db" target="id-claim-data" xsi:type="Serving">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-real-goal" source="id-req" target="id-goal" xsi:type="Realization">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-assoc" source="id-register" target="id-req" xsi:type="Association">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-flow" source="id-claim-fn" target="id-claim-data" xsi:type="Flow">
+      <name xml:lang="en">updates</name>
+    </relationship>
+    <relationship identifier="id-r-spec" source="id-clerk" target="id-customer" xsi:type="Specialization">
+      <name xml:lang="en"></name>
+    </relationship>
+    <relationship identifier="id-r-inf" source="id-claim-svc" target="id-goal" xsi:type="Influence" modifier="+">
+      <name xml:lang="en">+</name>
+    </relationship>
+  </relationships>
+  <views>
+    <diagrams>
+      <view identifier="id-view-layered" xsi:type="Diagram">
+        <name xml:lang="en">Layered Claims View</name>
+        <node identifier="id-n-group-biz" xsi:type="Container" x="20" y="20" w="760" h="170">
+          <label xml:lang="en">Business</label>
+          <style>
+            <fillColor r="255" g="255" b="229"/>
+            <lineColor r="180" g="180" b="80"/>
+          </style>
+          <node identifier="id-n-customer" xsi:type="Element" elementRef="id-customer" x="30" y="50" w="140" h="60">
+            <style>
+              <fillColor r="255" g="255" b="181"/>
+              <lineColor r="92" g="92" b="32"/>
+            </style>
+          </node>
+          <node identifier="id-n-clerk" xsi:type="Element" elementRef="id-clerk" x="210" y="50" w="140" h="60">
+            <style>
+              <fillColor r="255" g="255" b="181"/>
+              <lineColor r="92" g="92" b="32"/>
+            </style>
+          </node>
+          <node identifier="id-n-register" xsi:type="Element" elementRef="id-register" x="390" y="50" w="160" h="60">
+            <style>
+              <fillColor r="255" g="255" b="181"/>
+              <lineColor r="92" g="92" b="32"/>
+            </style>
+          </node>
+          <node identifier="id-n-claim" xsi:type="Element" elementRef="id-claim" x="590" y="50" w="140" h="60">
+            <style>
+              <fillColor r="255" g="255" b="181"/>
+              <lineColor r="92" g="92" b="32"/>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-n-group-app" xsi:type="Container" x="20" y="220" w="760" h="180">
+          <label xml:lang="en">Application</label>
+          <style>
+            <fillColor r="229" g="255" b="255"/>
+            <lineColor r="80" g="160" b="180"/>
+          </style>
+          <node identifier="id-n-claim-svc" xsi:type="Element" elementRef="id-claim-svc" x="30" y="50" w="160" h="60">
+            <style>
+              <fillColor r="181" g="255" b="255"/>
+              <lineColor r="32" g="92" b="92"/>
+            </style>
+          </node>
+          <node identifier="id-n-claim-app" xsi:type="Element" elementRef="id-claim-app" x="240" y="40" w="480" h="120">
+            <style>
+              <fillColor r="181" g="255" b="255"/>
+              <lineColor r="32" g="92" b="92"/>
+            </style>
+            <node identifier="id-n-claim-fn" xsi:type="Element" elementRef="id-claim-fn" x="20" y="40" w="200" h="55">
+              <style>
+                <fillColor r="160" g="245" b="245"/>
+                <lineColor r="32" g="92" b="92"/>
+              </style>
+            </node>
+            <node identifier="id-n-claim-data" xsi:type="Element" elementRef="id-claim-data" x="250" y="40" w="200" h="55">
+              <style>
+                <fillColor r="160" g="245" b="245"/>
+                <lineColor r="32" g="92" b="92"/>
+              </style>
+            </node>
+          </node>
+        </node>
+        <node identifier="id-n-group-tech" xsi:type="Container" x="20" y="430" w="760" h="150">
+          <label xml:lang="en">Technology</label>
+          <style>
+            <fillColor r="229" g="245" b="229"/>
+            <lineColor r="80" g="140" b="80"/>
+          </style>
+          <node identifier="id-n-db-node" xsi:type="Element" elementRef="id-db-node" x="30" y="45" w="200" h="70">
+            <style>
+              <fillColor r="201" g="231" b="203"/>
+              <lineColor r="32" g="92" b="32"/>
+            </style>
+          </node>
+          <node identifier="id-n-postgres" xsi:type="Element" elementRef="id-postgres" x="280" y="45" w="200" h="70">
+            <style>
+              <fillColor r="201" g="231" b="203"/>
+              <lineColor r="32" g="92" b="32"/>
+            </style>
+          </node>
+          <node identifier="id-n-claim-db" xsi:type="Element" elementRef="id-claim-db" x="530" y="45" w="200" h="70">
+            <style>
+              <fillColor r="201" g="231" b="203"/>
+              <lineColor r="32" g="92" b="32"/>
+            </style>
+          </node>
+        </node>
+        <connection identifier="id-c-trigger" xsi:type="Relationship" relationshipRef="id-r-trigger" source="id-n-customer" target="id-n-register"/>
+        <connection identifier="id-c-assign" xsi:type="Relationship" relationshipRef="id-r-assign" source="id-n-clerk" target="id-n-register"/>
+        <connection identifier="id-c-access" xsi:type="Relationship" relationshipRef="id-r-access" source="id-n-register" target="id-n-claim"/>
+        <connection identifier="id-c-serve" xsi:type="Relationship" relationshipRef="id-r-serve" source="id-n-claim-svc" target="id-n-register"/>
+        <connection identifier="id-c-real" xsi:type="Relationship" relationshipRef="id-r-real" source="id-n-claim-app" target="id-n-claim-svc"/>
+        <connection identifier="id-c-flow" xsi:type="Relationship" relationshipRef="id-r-flow" source="id-n-claim-fn" target="id-n-claim-data">
+          <bendpoint x="490" y="310"/>
+        </connection>
+        <connection identifier="id-c-assign-sw" xsi:type="Relationship" relationshipRef="id-r-assign-sw" source="id-n-db-node" target="id-n-postgres"/>
+        <connection identifier="id-c-assign-art" xsi:type="Relationship" relationshipRef="id-r-assign-art" source="id-n-postgres" target="id-n-claim-db"/>
+        <connection identifier="id-c-serve-data" xsi:type="Relationship" relationshipRef="id-r-serve-data" source="id-n-claim-db" target="id-n-claim-data"/>
+      </view>
+      <view identifier="id-view-motivation" xsi:type="Diagram">
+        <name xml:lang="en">Motivation</name>
+        <node identifier="id-n-goal" xsi:type="Element" elementRef="id-goal" x="80" y="40" w="180" h="70">
+          <style>
+            <fillColor r="204" g="204" b="255"/>
+            <lineColor r="80" g="80" b="140"/>
+          </style>
+        </node>
+        <node identifier="id-n-req" xsi:type="Element" elementRef="id-req" x="80" y="180" w="180" h="70">
+          <style>
+            <fillColor r="204" g="204" b="255"/>
+            <lineColor r="80" g="80" b="140"/>
+          </style>
+        </node>
+        <node identifier="id-n-note" xsi:type="Label" x="320" y="40" w="180" h="80">
+          <label xml:lang="en">Settle claims faster than last year.</label>
+          <style>
+            <fillColor r="255" g="255" b="160"/>
+            <lineColor r="120" g="120" b="40"/>
+          </style>
+        </node>
+        <connection identifier="id-c-real-goal" xsi:type="Relationship" relationshipRef="id-r-real-goal" source="id-n-req" target="id-n-goal"/>
+        <connection identifier="id-c-inf" xsi:type="Relationship" relationshipRef="id-r-inf" source="id-n-req" target="id-n-goal">
+          <bendpoint x="40" y="145"/>
+        </connection>
+      </view>
+    </diagrams>
+  </views>
+</model>
