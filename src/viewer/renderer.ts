@@ -95,6 +95,8 @@ function renderNode(item: AbsNode): string {
   const sw = node.style?.lineWidth || 1.25;
   const isNote = node.xsiType === "Label" && !node.elementRef;
   const isGroup = node.xsiType === "Container" && !node.elementRef;
+  const nestedParent = node.children.length > 0;
+  const topLabel = isGroup || nestedParent;
   const shape = isNote ? "note" : isGroup ? "dashed-rounded" : notation.shape;
   const dash = shape.startsWith("dashed") ? "5 4" : undefined;
   const body = shapeMarkup(shape, absX, absY, node.w, node.h, fill, strokeColor, sw, dash);
@@ -104,9 +106,18 @@ function renderNode(item: AbsNode): string {
       : iconMarkup(notation.icon, absX + node.w - 20, absY + 6, strokeColor);
   const fontSize = node.style?.font?.size || (isGroup ? 11 : 12);
   const fontColor = color(node.style?.font?.color, "#222");
-  const labelY = isGroup ? absY + 16 : absY + node.h / 2;
+  const labelY = topLabel ? absY + 16 : absY + node.h / 2;
   const label = name
-    ? textBlock(name, absX + 8, labelY, node.w - (isGroup ? 16 : 28), node.h - (isGroup ? 8 : 16), fontSize, fontColor, isGroup ? "start" : "middle")
+    ? textBlock(
+        name,
+        absX + 8,
+        labelY,
+        node.w - (topLabel ? 16 : 28),
+        node.h - (topLabel ? 8 : 16),
+        fontSize,
+        fontColor,
+        topLabel ? "start" : "middle"
+      )
     : "";
 
   return `<g class="av-node" data-kind="${isNote ? "label" : isGroup ? "container" : "element"}" data-element-id="${esc(node.identifier)}" data-type="${esc(type)}" transform="translate(0,0)">

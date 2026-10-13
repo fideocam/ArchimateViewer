@@ -26,6 +26,26 @@ describe("renderView", () => {
     assert.match(svg, /marker-end=/);
     assert.match(svg, /Customer/);
     assert.match(svg, /Claim Management/);
+
+    const parent = svg.match(
+      /data-element-id="id-n-claim-app"[\s\S]*?<text[^>]* y="([^"]+)"[\s\S]*?Claim Management/
+    );
+    assert.ok(parent);
+    assert.ok(Number(parent[1]) < 280, "nested parent label should sit at the top, not over children");
+  });
+
+  it("renders the relationships sample with typed connectors", () => {
+    const xml = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../samples/relationships.xml"),
+      "utf8"
+    );
+    const model = parseModel(xml);
+    const svg = renderView(model.views[0], model);
+    assert.match(svg, /data-type="Composition"/);
+    assert.match(svg, /data-type="Serving"/);
+    assert.match(svg, /data-type="Triggering"/);
+    assert.match(svg, /data-type="Specialization"/);
+    assert.match(svg, /marker-start=/);
   });
 });
 
@@ -55,6 +75,11 @@ describe("NavigatedViewer", () => {
     assert.ok(canvas.getZoom() > 0);
     canvas.zoom(1.5);
     assert.equal(canvas.getZoom(), 1.5);
+    const stage = container.querySelector(".av-stage") as HTMLElement;
+    const beforePan = stage.style.transform;
+    canvas.panBy(40, -15);
+    assert.notEqual(stage.style.transform, beforePan);
+    assert.match(stage.style.transform, /scale\(1\.5\)/);
 
     viewer.destroy();
   });

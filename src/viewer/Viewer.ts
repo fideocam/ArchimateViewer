@@ -132,7 +132,7 @@ export class Viewer {
 .av-stage { transform-origin: 0 0; position: absolute; top: 0; left: 0; }
 .av-viewport.is-panning { cursor: grabbing; }
 .av-viewport { cursor: grab; }
-.av-diagram { display: block; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+.av-diagram { display: block; font-family: "Segoe UI", Helvetica, Arial, sans-serif; user-select: none; }
 .av-node { cursor: default; }
 `;
     document.head.appendChild(this.hostStyle);
