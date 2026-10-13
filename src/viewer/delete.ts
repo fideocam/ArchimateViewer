@@ -115,6 +115,30 @@ export function applyDeletion(model: ArchiMateModel, plan: DeletionPlan) {
   }
 }
 
+export function setIdentifierAttribute(
+  xml: string,
+  identifier: string,
+  attribute: "source" | "target",
+  value: string
+): string {
+  const quoted = xml.indexOf(`identifier="${identifier}"`);
+  const at = quoted >= 0 ? quoted : xml.indexOf(`identifier='${identifier}'`);
+  if (at < 0) {
+    return xml;
+  }
+  const tagStart = xml.lastIndexOf("<", at);
+  const tagEnd = xml.indexOf(">", at);
+  if (tagStart < 0 || tagEnd < 0) {
+    return xml;
+  }
+  const tag = xml.slice(tagStart, tagEnd);
+  const next = tag.replace(new RegExp(`(\\s${attribute}=)(["'])[^"']*\\2`), `$1"${escapeXmlAttr(value)}"`);
+  if (next === tag) {
+    return xml;
+  }
+  return xml.slice(0, tagStart) + next + xml.slice(tagEnd);
+}
+
 export function removeFromXml(xml: string, ids: string[]): string {
   const spans = ids
     .map((id) => elementSpan(xml, id))
@@ -138,6 +162,10 @@ export function removeFromXml(xml: string, ids: string[]): string {
     out = out.slice(0, start) + out.slice(end);
   }
   return out;
+}
+
+function escapeXmlAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 function elementSpan(xml: string, id: string): { start: number; end: number } | null {

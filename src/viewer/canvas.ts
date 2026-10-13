@@ -15,6 +15,20 @@ interface ConnectionDragState {
   bendpoints: Point[];
 }
 
+interface EndpointDragState {
+  id: string;
+  end: "source" | "target";
+  bendpoints: Point[];
+}
+
+interface KinkDragState {
+  id: string;
+  index: number;
+  originX: number;
+  originY: number;
+  bendpoints: Point[];
+}
+
 interface PendingLabel {
   kind: "node" | "connection";
   id: string;
@@ -41,11 +55,14 @@ export class Canvas {
   private lastY = 0;
   private drag: DragState | null = null;
   private connectionDrag: ConnectionDragState | null = null;
+  private endpointDrag: EndpointDragState | null = null;
+  private kinkDrag: KinkDragState | null = null;
   private pendingLabel: PendingLabel | null = null;
   private editing = false;
   private navigable: boolean;
   private onNodeDragEnd?: (id: string, dx: number, dy: number) => void;
   private onConnectionDragEnd?: (id: string, bendpoints: Point[]) => void;
+  private onConnectionRetarget?: (id: string, end: "source" | "target", nodeId: string) => void;
   private onLabelEdit?: (kind: "node" | "connection", id: string, value: string) => void;
   private onDelete?: (kind: "node" | "connection", id: string) => void;
   private selected: { kind: "node" | "connection"; id: string } | null = null;
@@ -57,6 +74,7 @@ export class Canvas {
       navigable?: boolean;
       onNodeDragEnd?: (id: string, dx: number, dy: number) => void;
       onConnectionDragEnd?: (id: string, bendpoints: Point[]) => void;
+      onConnectionRetarget?: (id: string, end: "source" | "target", nodeId: string) => void;
       onLabelEdit?: (kind: "node" | "connection", id: string, value: string) => void;
       onDelete?: (kind: "node" | "connection", id: string) => void;
     } = {}
@@ -65,6 +83,7 @@ export class Canvas {
     this.navigable = options.navigable !== false;
     this.onNodeDragEnd = options.onNodeDragEnd;
     this.onConnectionDragEnd = options.onConnectionDragEnd;
+    this.onConnectionRetarget = options.onConnectionRetarget;
     this.onLabelEdit = options.onLabelEdit;
     this.onDelete = options.onDelete;
     this.viewport.classList.add("av-viewport");
@@ -164,13 +183,52 @@ export class Canvas {
       }
       const target = event.target as Element | null;
       const label = target?.closest?.(".av-label") ?? null;
+      const kink = target?.closest?.(".av-connection-kink") ?? null;
+      const endpoint = target?.closest?.(".av-connection-end") ?? null;
+      if (event.button === 0 && kink) {
+        const host = kink.closest(".av-connection");
+        event.preventDefault();
+        const id = host?.getAttribute("data-element-id") || "";
+        this.select("connection", id);
+        this.kinkDrag = {
+          id,
+          index: Number(kink.getAttribute("data-index")),
+          originX: event.clientX,
+          originY: event.clientY,
+          bendpoints: parseBendpoints(host?.getAttribute("data-bendpoints") ?? null)
+        };
+        this.viewport.setPointerCapture?.(event.pointerId);
+        this.viewport.classList.add("is-dragging");
+        return;
+      }
       const node = target?.closest?.(".av-node") ?? null;
       const connection = target?.closest?.(".av-connection") ?? null;
+      if (event.button === 0 && endpoint) {
+        const host = endpoint.closest(".av-connection");
+        const end = endpoint.getAttribute("data-end") === "target" ? "target" : "source";
+        this.select("connection", host?.getAttribute("data-element-id") || "");
+        event.preventDefault();
+        this.endpointDrag = {
+          id: host?.getAttribute("data-element-id") || "",
+          end,
+          bendpoints: parseBendpoints(host?.getAttribute("data-bendpoints") ?? null)
+        };
+        this.viewport.setPointerCapture?.(event.pointerId);
+        this.viewport.classList.add("is-dragging");
+        this.previewEndpoint(this.endpointDrag, this.diagramPoint(event));
+        return;
+      }
       if (event.button === 0 && label && (node || connection)) {
         event.preventDefault();
+        const host = node || connection;
+        if (node) {
+          this.clearSelection();
+        } else if (connection) {
+          this.select("connection", connection.getAttribute("data-element-id") || "");
+        }
         this.pendingLabel = {
           kind: node ? "node" : "connection",
-          id: (node || connection)!.getAttribute("data-element-id") || "",
+          id: host!.getAttribute("data-element-id") || "",
           label,
           originX: event.clientX,
           originY: event.clientY
@@ -180,6 +238,7 @@ export class Canvas {
       }
       if (event.button === 0 && node) {
         event.preventDefault();
+        this.clearSelection();
         this.drag = {
           id: node.getAttribute("data-element-id") || "",
           originX: event.clientX,
@@ -192,6 +251,7 @@ export class Canvas {
       }
       if (event.button === 0 && connection) {
         event.preventDefault();
+        this.select("connection", connection.getAttribute("data-element-id") || "");
         this.connectionDrag = {
           id: connection.getAttribute("data-element-id") || "",
           originX: event.clientX,
@@ -214,7 +274,7 @@ export class Canvas {
     };
 
     const onMove = (event: PointerEvent) => {
-      if (this.pendingLabel && !this.drag && !this.connectionDrag) {
+      if (this.pendingLabel && !this.drag && !this.connectionDrag && !this.endpointDrag && !this.kinkDrag) {
         const moved = Math.hypot(event.clientX - this.pendingLabel.originX, event.clientY - this.pendingLabel.originY);
         if (moved < 4) {
           return;
@@ -238,6 +298,19 @@ export class Canvas {
         this.includeBounds(points.map((point) => ({ x: point.x, y: point.y, w: 0, h: 0 })));
         return;
       }
+      if (this.kinkDrag) {
+        const dx = (event.clientX - this.kinkDrag.originX) / this.scale;
+        const dy = (event.clientY - this.kinkDrag.originY) / this.scale;
+        const points = this.previewKink(this.kinkDrag, dx, dy);
+        this.includeBounds(points.map((point) => ({ x: point.x, y: point.y, w: 0, h: 0 })));
+        return;
+      }
+      if (this.endpointDrag) {
+        const point = this.diagramPoint(event);
+        const points = this.previewEndpoint(this.endpointDrag, point);
+        this.includeBounds(points.map((item) => ({ x: item.x, y: item.y, w: 0, h: 0 })));
+        return;
+      }
       if (!this.panning) {
         return;
       }
@@ -247,7 +320,7 @@ export class Canvas {
     };
 
     const onUp = (event: PointerEvent) => {
-      if (this.pendingLabel && !this.drag && !this.connectionDrag) {
+      if (this.pendingLabel && !this.drag && !this.connectionDrag && !this.endpointDrag && !this.kinkDrag) {
         const pending = this.pendingLabel;
         this.pendingLabel = null;
         this.openLabelEditor(pending);
@@ -285,6 +358,44 @@ export class Canvas {
           this.onConnectionDragEnd?.(drag.id, shiftedBendpoints(drag, dx, dy, this.connectionElement(drag.id)));
         } else {
           this.previewConnection(drag, 0, 0);
+          if (drag.id) {
+            this.select("connection", drag.id);
+          }
+        }
+        return;
+      }
+      if (this.kinkDrag) {
+        const drag = this.kinkDrag;
+        this.kinkDrag = null;
+        this.viewport.classList.remove("is-dragging");
+        const dx = (event.clientX - drag.originX) / this.scale;
+        const dy = (event.clientY - drag.originY) / this.scale;
+        if (drag.id && (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5)) {
+          this.select("connection", drag.id);
+          this.onConnectionDragEnd?.(drag.id, movedKink(drag, dx, dy));
+        } else {
+          this.previewKink(drag, 0, 0);
+          if (drag.id) {
+            this.select("connection", drag.id);
+          }
+        }
+        return;
+      }
+      if (this.endpointDrag) {
+        const drag = this.endpointDrag;
+        this.endpointDrag = null;
+        this.viewport.classList.remove("is-dragging");
+        this.clearDropTarget();
+        const node = this.elementAt(this.diagramPoint(event));
+        const nodeId = node?.getAttribute("data-element-id") || "";
+        const conn = this.connectionElement(drag.id);
+        const otherId = conn?.getAttribute(drag.end === "source" ? "data-target" : "data-source") || "";
+        const currentId = conn?.getAttribute(drag.end === "source" ? "data-source" : "data-target") || "";
+        if (drag.id && nodeId && nodeId !== otherId && nodeId !== currentId) {
+          this.select("connection", drag.id);
+          this.onConnectionRetarget?.(drag.id, drag.end, nodeId);
+        } else {
+          this.restoreConnection(drag.id);
           if (drag.id) {
             this.select("connection", drag.id);
           }
@@ -453,6 +564,106 @@ export class Canvas {
     this.viewport.classList.add("is-dragging");
   }
 
+  private previewKink(drag: KinkDragState, dx: number, dy: number): Point[] {
+    const conn = this.connectionElement(drag.id);
+    if (!conn) {
+      return [];
+    }
+    const bendpoints = movedKink(drag, dx, dy);
+    const source = this.nodeElement(conn.getAttribute("data-source") || "");
+    const target = this.nodeElement(conn.getAttribute("data-target") || "");
+    if (!source || !target) {
+      return bendpoints;
+    }
+    const route = connectionRoute(boundsOf(source, 0, 0), boundsOf(target, 0, 0), bendpoints);
+    applyRoute(conn, route);
+    return route;
+  }
+
+  private previewEndpoint(drag: EndpointDragState, point: Point): Point[] {
+    const conn = this.connectionElement(drag.id);
+    if (!conn) {
+      return [];
+    }
+    const source = this.nodeElement(conn.getAttribute("data-source") || "");
+    const target = this.nodeElement(conn.getAttribute("data-target") || "");
+    if (!source || !target) {
+      return [];
+    }
+    const cursor = { x: point.x, y: point.y, w: 0, h: 0 };
+    const route =
+      drag.end === "source"
+        ? connectionRoute(cursor, boundsOf(target, 0, 0), drag.bendpoints)
+        : connectionRoute(boundsOf(source, 0, 0), cursor, drag.bendpoints);
+    applyRoute(conn, route);
+    const node = this.elementAt(point);
+    const nodeId = node?.getAttribute("data-element-id") || "";
+    const otherId = conn.getAttribute(drag.end === "source" ? "data-target" : "data-source") || "";
+    const currentId = conn.getAttribute(drag.end === "source" ? "data-source" : "data-target") || "";
+    this.markDropTarget(nodeId && nodeId !== otherId && nodeId !== currentId ? node : null);
+    return route;
+  }
+
+  private restoreConnection(id: string) {
+    const conn = this.connectionElement(id);
+    if (!conn) {
+      return;
+    }
+    const source = this.nodeElement(conn.getAttribute("data-source") || "");
+    const target = this.nodeElement(conn.getAttribute("data-target") || "");
+    if (!source || !target) {
+      return;
+    }
+    applyRoute(
+      conn,
+      connectionRoute(boundsOf(source, 0, 0), boundsOf(target, 0, 0), parseBendpoints(conn.getAttribute("data-bendpoints")))
+    );
+  }
+
+  private diagramPoint(event: PointerEvent): Point {
+    const rect = this.viewport.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+    return {
+      x: (event.clientX - (rect.left || 0) - this.tx) / this.scale,
+      y: (event.clientY - (rect.top || 0) - this.ty) / this.scale
+    };
+  }
+
+  private elementAt(point: Point): Element | null {
+    const svg = this.getSvgElement();
+    if (!svg) {
+      return null;
+    }
+    let best: Element | null = null;
+    let bestArea = Infinity;
+    for (const node of Array.from(svg.querySelectorAll('.av-node[data-kind="element"]'))) {
+      const box = boundsOf(node, 0, 0);
+      if (point.x < box.x || point.y < box.y || point.x > box.x + box.w || point.y > box.y + box.h) {
+        continue;
+      }
+      const area = box.w * box.h;
+      if (area < bestArea) {
+        best = node;
+        bestArea = area;
+      }
+    }
+    return best;
+  }
+
+  private markDropTarget(node: Element | null) {
+    this.clearDropTarget();
+    node?.classList.add("is-drop-target");
+  }
+
+  private clearDropTarget() {
+    const svg = this.getSvgElement();
+    if (!svg) {
+      return;
+    }
+    for (const el of Array.from(svg.querySelectorAll(".is-drop-target"))) {
+      el.classList.remove("is-drop-target");
+    }
+  }
+
   private previewConnection(drag: ConnectionDragState, dx: number, dy: number): Point[] {
     const conn = this.connectionElement(drag.id);
     if (!conn) {
@@ -552,29 +763,75 @@ export class Canvas {
 }
 
 function shiftedBendpoints(drag: ConnectionDragState, dx: number, dy: number, conn: Element | null): Point[] {
-  if (drag.bendpoints.length) {
-    return drag.bendpoints.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+  const ends = connectionEnds(conn);
+  if (drag.bendpoints.length === 0) {
+    const mid = ends
+      ? { x: (ends.start.x + ends.end.x) / 2, y: (ends.start.y + ends.end.y) / 2 }
+      : { x: 0, y: 0 };
+    return [{ x: mid.x + dx, y: mid.y + dy }];
   }
+  if (drag.bendpoints.length === 1) {
+    const existing = drag.bendpoints[0];
+    const added = { x: existing.x + dx, y: existing.y + dy };
+    return ends ? orderAlong(ends.start, [existing, added], ends.end) : [existing, added];
+  }
+  return drag.bendpoints.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+}
+
+function movedKink(drag: KinkDragState, dx: number, dy: number): Point[] {
+  return drag.bendpoints.map((point, index) =>
+    index === drag.index ? { x: point.x + dx, y: point.y + dy } : { x: point.x, y: point.y }
+  );
+}
+
+function connectionEnds(conn: Element | null): { start: Point; end: Point } | null {
   if (!conn) {
-    return [{ x: dx, y: dy }];
+    return null;
   }
   const svg = conn.closest("svg");
   const source = svg?.querySelector(`.av-node[data-element-id="${cssEscape(conn.getAttribute("data-source") || "")}"]`);
   const target = svg?.querySelector(`.av-node[data-element-id="${cssEscape(conn.getAttribute("data-target") || "")}"]`);
   if (!source || !target) {
-    return [{ x: dx, y: dy }];
+    return null;
   }
   const ends = connectionRoute(boundsOf(source, 0, 0), boundsOf(target, 0, 0), []);
-  const mid = {
-    x: (ends[0].x + ends[ends.length - 1].x) / 2,
-    y: (ends[0].y + ends[ends.length - 1].y) / 2
-  };
-  return [{ x: mid.x + dx, y: mid.y + dy }];
+  return { start: ends[0], end: ends[ends.length - 1] };
+}
+
+function orderAlong(start: Point, points: Point[], end: Point): Point[] {
+  const vx = end.x - start.x;
+  const vy = end.y - start.y;
+  return [...points].sort((a, b) => {
+    const da = (a.x - start.x) * vx + (a.y - start.y) * vy;
+    const db = (b.x - start.x) * vx + (b.y - start.y) * vy;
+    return da - db;
+  });
 }
 
 function applyRoute(conn: Element, points: Point[]) {
   const d = pointsToPath(points);
   conn.querySelectorAll("path").forEach((path) => path.setAttribute("d", d));
+  const start = points[0];
+  const end = points[points.length - 1];
+  const sourceEnd = conn.querySelector('.av-connection-end[data-end="source"]');
+  const targetEnd = conn.querySelector('.av-connection-end[data-end="target"]');
+  if (sourceEnd && start) {
+    sourceEnd.setAttribute("cx", String(start.x));
+    sourceEnd.setAttribute("cy", String(start.y));
+  }
+  if (targetEnd && end) {
+    targetEnd.setAttribute("cx", String(end.x));
+    targetEnd.setAttribute("cy", String(end.y));
+  }
+  const kinks = Array.from(conn.querySelectorAll(".av-connection-kink"));
+  kinks.forEach((kink, index) => {
+    const point = points[index + 1];
+    if (!point) {
+      return;
+    }
+    kink.setAttribute("cx", String(point.x));
+    kink.setAttribute("cy", String(point.y));
+  });
   const mid = points[Math.floor(points.length / 2)];
   const label = conn.querySelector("text");
   if (label && mid) {

@@ -190,11 +190,23 @@ describe("NavigatedViewer", () => {
     assert.equal(flow.bendpoints[0].x, 490);
 
     drag(container, "id-c-flow", 15, -10);
-    assert.equal(flow.bendpoints[0].x, 505);
-    assert.equal(flow.bendpoints[0].y, 300);
+    assert.equal(flow.bendpoints.length, 2);
+    assert.equal(flow.bendpoints[0].x, 490);
+    assert.equal(flow.bendpoints[0].y, 310);
+    assert.equal(flow.bendpoints[1].x, 505);
+    assert.equal(flow.bendpoints[1].y, 300);
 
     drag(container, "id-c-trigger", 30, 12);
     assert.equal(trigger.bendpoints.length, 1);
+    assert.equal(trigger.bendpoints[0].x, 330);
+    assert.equal(trigger.bendpoints[0].y, 112);
+
+    drag(container, "id-c-trigger", 0, 20);
+    assert.equal(trigger.bendpoints.length, 2);
+    assert.equal(trigger.bendpoints[0].x, 330);
+    assert.equal(trigger.bendpoints[0].y, 112);
+    assert.equal(trigger.bendpoints[1].x, 330);
+    assert.equal(trigger.bendpoints[1].y, 132);
 
     const label = container.querySelector('[data-element-id="id-n-customer"] .av-label');
     assert.ok(label);
@@ -229,6 +241,81 @@ describe("NavigatedViewer", () => {
     Object.defineProperty(enterArrow, "key", { value: "Enter" });
     arrowInput.dispatchEvent(enterArrow);
     assert.equal(model.relationships.get("id-r-flow")?.name, "writes");
+
+    viewer.destroy();
+  });
+
+  it("drags one kink point along the arrow", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    await viewer.importXML(fixture);
+    const flow = viewer.get("model").views[0].connections.find((conn) => conn.identifier === "id-c-flow");
+    assert.ok(flow);
+    const handle = container.querySelector('[data-element-id="id-c-flow"] .av-connection-kink[data-index="0"]');
+    assert.ok(handle);
+
+    dragElement(handle, container, 15, -10);
+    assert.equal(flow.bendpoints.length, 1);
+    assert.equal(flow.bendpoints[0].x, 505);
+    assert.equal(flow.bendpoints[0].y, 300);
+
+    drag(container, "id-c-flow", 0, 20);
+    assert.equal(flow.bendpoints.length, 2);
+    const kept = { x: flow.bendpoints[1].x, y: flow.bendpoints[1].y };
+    const first = container.querySelector('[data-element-id="id-c-flow"] .av-connection-kink[data-index="0"]');
+    assert.ok(first);
+    dragElement(first, container, -20, 5);
+    assert.equal(flow.bendpoints[0].x, 485);
+    assert.equal(flow.bendpoints[0].y, 305);
+    assert.equal(flow.bendpoints[1].x, kept.x);
+    assert.equal(flow.bendpoints[1].y, kept.y);
+    assert.ok(container.querySelector('[data-element-id="id-c-flow"].is-selected'));
+
+    const customer = container.querySelector('[data-element-id="id-n-customer"]');
+    assert.ok(customer);
+    customer.dispatchEvent(
+      new DiagramPointerEvent("pointerdown", { bubbles: true, clientX: 0, clientY: 0, button: 0, pointerId: 3 })
+    );
+    assert.equal(container.querySelector('[data-element-id="id-c-flow"].is-selected'), null);
+
+    viewer.destroy();
+  });
+
+  it("retargets a relationship when an arrow end is dropped on another element", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    let saved = "";
+    viewer.on("change", (payload) => {
+      saved = (payload as { xml: string }).xml;
+    });
+    await viewer.importXML(fixture);
+    const model = viewer.get("model");
+    const trigger = model.views[0].connections.find((conn) => conn.identifier === "id-c-trigger");
+    assert.ok(trigger);
+    assert.ok(container.querySelector('[data-element-id="id-c-trigger"] .av-connection-end[data-end="source"]'));
+    assert.ok(container.querySelector('[data-element-id="id-c-trigger"] .av-connection-end[data-end="target"]'));
+
+    dragEnd(container, "id-c-trigger", "source", 0, 0);
+    assert.equal(trigger.source, "id-n-customer");
+    assert.equal(model.relationships.get("id-r-trigger")?.source, "id-customer");
+    assert.equal(saved, "");
+
+    dragEnd(container, "id-c-trigger", "source", 300, 100);
+    assert.equal(trigger.source, "id-n-clerk");
+    assert.equal(trigger.target, "id-n-register");
+    assert.equal(model.relationships.get("id-r-trigger")?.source, "id-clerk");
+    assert.equal(model.relationships.get("id-r-trigger")?.target, "id-register");
+    assert.match(container.querySelector('[data-element-id="id-c-trigger"]')?.getAttribute("data-source") || "", /id-n-clerk/);
+    assert.match(saved, /identifier="id-c-trigger"[^>]*source="id-n-clerk"/);
+    assert.match(saved, /identifier="id-r-trigger"[^>]*source="id-clerk"/);
+    assert.match(saved, /identifier="id-r-trigger"[^>]*target="id-register"/);
+
+    dragEnd(container, "id-c-trigger", "target", 680, 100);
+    assert.equal(trigger.target, "id-n-claim");
+    assert.equal(model.relationships.get("id-r-trigger")?.target, "id-claim");
+    assert.match(saved, /identifier="id-c-trigger"[^>]*target="id-n-claim"/);
 
     viewer.destroy();
   });
@@ -350,6 +437,32 @@ function pressKey(key: string) {
   const event = new window.Event("keydown", { bubbles: true });
   Object.defineProperty(event, "key", { value: key });
   document.dispatchEvent(event);
+}
+
+function dragEnd(container: HTMLElement, id: string, end: "source" | "target", x: number, y: number) {
+  const handle = container.querySelector(`[data-element-id="${id}"] .av-connection-end[data-end="${end}"]`);
+  assert.ok(handle);
+  handle.dispatchEvent(
+    new DiagramPointerEvent("pointerdown", { bubbles: true, clientX: x, clientY: y, button: 0, pointerId: 1 })
+  );
+  container.dispatchEvent(
+    new DiagramPointerEvent("pointermove", { bubbles: true, clientX: x, clientY: y, button: 0, pointerId: 1 })
+  );
+  container.dispatchEvent(
+    new DiagramPointerEvent("pointerup", { bubbles: true, clientX: x, clientY: y, button: 0, pointerId: 1 })
+  );
+}
+
+function dragElement(node: Element, container: HTMLElement, dx: number, dy: number) {
+  node.dispatchEvent(
+    new DiagramPointerEvent("pointerdown", { bubbles: true, clientX: 0, clientY: 0, button: 0, pointerId: 1 })
+  );
+  container.dispatchEvent(
+    new DiagramPointerEvent("pointermove", { bubbles: true, clientX: dx, clientY: dy, button: 0, pointerId: 1 })
+  );
+  container.dispatchEvent(
+    new DiagramPointerEvent("pointerup", { bubbles: true, clientX: dx, clientY: dy, button: 0, pointerId: 1 })
+  );
 }
 
 function drag(container: HTMLElement, id: string, dx: number, dy: number) {

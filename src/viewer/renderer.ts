@@ -312,10 +312,20 @@ function renderConnection(
   const labelSvg = label
     ? `<text class="av-label" x="${mid.x}" y="${mid.y - 6}" text-anchor="middle" font-size="11" font-family="Segoe UI, Helvetica, Arial, sans-serif" fill="${stroke}">${esc(label)}</text>`
     : "";
+  const start = points[0];
+  const end = points[points.length - 1];
   return `<g class="av-connection" data-kind="relationship" data-element-id="${esc(conn.identifier)}" data-type="${esc(type)}" data-source="${esc(conn.source)}" data-target="${esc(conn.target)}" data-bendpoints="${esc(formatBendpoints(conn.bendpoints))}">
     <path class="av-connection-line" d="${d}" fill="none" stroke="${stroke}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-start="${srcMarker}" marker-end="${tgtMarker}"/>
     <path class="av-connection-hit" d="${d}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="18" pointer-events="stroke"/>
     ${labelSvg}
+    <circle class="av-connection-end" data-end="source" cx="${start.x}" cy="${start.y}" r="12" fill="transparent"/>
+    <circle class="av-connection-end" data-end="target" cx="${end.x}" cy="${end.y}" r="12" fill="transparent"/>
+    ${conn.bendpoints
+      .map(
+        (point, index) =>
+          `<circle class="av-connection-kink" data-index="${index}" cx="${point.x}" cy="${point.y}" r="6" fill="#fff" stroke="${stroke}" stroke-width="2"/>`
+      )
+      .join("")}
   </g>`;
 }
 

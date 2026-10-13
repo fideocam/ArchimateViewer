@@ -1,5 +1,5 @@
 import { Canvas } from "./canvas";
-import { applyDeletion, planDeletion, removeFromXml } from "./delete";
+import { applyDeletion, planDeletion, removeFromXml, setIdentifierAttribute } from "./delete";
 import { parseModel } from "./parser";
 import { renderView } from "./renderer";
 import type { ArchiMateModel, DiagramConnection, DiagramNode, ImportResult, Point, ViewerOptions } from "./types";
@@ -147,6 +147,7 @@ export class Viewer {
       navigable: this.canvasNavigable(),
       onNodeDragEnd: (id, dx, dy) => this.moveDiagramNode(id, dx, dy),
       onConnectionDragEnd: (id, bendpoints) => this.moveConnection(id, bendpoints),
+      onConnectionRetarget: (id, end, nodeId) => this.retargetConnection(id, end, nodeId),
       onLabelEdit: (kind, id, value) => this.editDiagramText(kind, id, value),
       onDelete: (kind, id) => this.deleteDiagramObject(kind, id)
     });
@@ -173,6 +174,35 @@ export class Viewer {
     if (view) {
       this.canvas.setSvg(renderView(view, this.model));
     }
+    this.emit("change", { xml: this.sourceXml });
+  }
+
+  protected retargetConnection(id: string, end: "source" | "target", nodeId: string) {
+    const view = this.currentDiagram();
+    const connection = view?.connections.find((item) => item.identifier === id);
+    const node = view && findDiagramNode(view.nodes, nodeId);
+    if (!view || !connection || !node?.elementRef || !this.model || !this.canvas) {
+      return;
+    }
+    const otherId = end === "source" ? connection.target : connection.source;
+    if (otherId === nodeId || connection[end] === nodeId) {
+      this.canvas.setSvg(renderView(view, this.model));
+      return;
+    }
+    connection[end] = nodeId;
+    const relationship = connection.relationshipRef
+      ? this.model.relationships.get(connection.relationshipRef)
+      : undefined;
+    if (relationship) {
+      relationship[end] = node.elementRef;
+    }
+    if (this.sourceXml) {
+      this.sourceXml = setIdentifierAttribute(this.sourceXml, connection.identifier, end, nodeId);
+      if (relationship && connection.relationshipRef) {
+        this.sourceXml = setIdentifierAttribute(this.sourceXml, connection.relationshipRef, end, node.elementRef);
+      }
+    }
+    this.canvas.setSvg(renderView(view, this.model));
     this.emit("change", { xml: this.sourceXml });
   }
 
@@ -242,6 +272,10 @@ export class Viewer {
 .av-stage, .av-diagram { overflow: visible; }
 .av-diagram { display: block; font-family: "Segoe UI", Helvetica, Arial, sans-serif; user-select: none; }
 .av-node, .av-connection { cursor: grab; }
+.av-connection-end, .av-connection-kink { cursor: crosshair; }
+.av-connection-kink { visibility: hidden; pointer-events: none; }
+.av-connection.is-selected .av-connection-kink { visibility: visible; pointer-events: auto; }
+.av-node.is-drop-target > rect, .av-node.is-drop-target > path, .av-node.is-drop-target > ellipse, .av-node.is-drop-target > circle { stroke: #2e7d32; stroke-width: 2.5; }
 .av-label { cursor: text; }
 .av-node.is-selected > rect, .av-node.is-selected > path, .av-node.is-selected > ellipse, .av-node.is-selected > circle { stroke: #1565c0; stroke-width: 2.5; }
 .av-connection.is-selected .av-connection-line { stroke: #1565c0; stroke-width: 3; }
