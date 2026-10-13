@@ -10,6 +10,14 @@ const viewsEl = document.getElementById("views") as HTMLSelectElement;
 const titleEl = document.getElementById("title") as HTMLElement;
 const statusEl = document.getElementById("status") as HTMLElement;
 const viewer = new NavigatedViewer({ container: canvasEl });
+viewer.on("change", (payload) => {
+  const xml = (payload as { xml?: string } | undefined)?.xml;
+  if (typeof xml !== "string") {
+    return;
+  }
+  currentXml = xml;
+  vscode?.postMessage({ type: "apply", text: xml });
+});
 
 let currentXml = "";
 
@@ -20,7 +28,11 @@ window.addEventListener("message", async (event) => {
     return;
   }
   if (message.type === "init" || message.type === "update") {
-    currentXml = message.text || "";
+    const text = message.text || "";
+    if (text === currentXml && canvasEl.querySelector("svg")) {
+      return;
+    }
+    currentXml = text;
     if (message.fileName) {
       titleEl.textContent = message.fileName;
     }

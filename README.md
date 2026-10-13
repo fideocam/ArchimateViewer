@@ -1,6 +1,6 @@
 # ArchiMate Viewer
 
-VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and renders the diagram with pan/zoom. The rendering engine is a bpmn-js-style JavaScript viewer you can also embed on a web page.
+VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and renders the diagram with pan/zoom. The rendering engine is a JavaScript viewer you can also embed on a web page.
 
 This is a **viewer**, not a modeler.
 
@@ -28,7 +28,7 @@ Wheel to zoom, drag the canvas to pan, use the toolbar to fit or switch views.
 
 ## Embed the JavaScript viewer
 
-Same product shape as [bpmn-js Viewer](https://bpmn.io/toolkit/bpmn-js/walkthrough/): attach to a container, `importXML`, then zoom.
+Attach to a container, call `importXML`, then zoom.
 
 ### Script tag
 

@@ -1,10 +1,20 @@
 {
   "name": "archimate-viewer",
   "displayName": "ArchiMate Viewer",
-  "description": "View Open Group ArchiMate Model Exchange files in VS Code, powered by an embeddable bpmn-js-style JavaScript viewer.",
+  "description": "View Open Group ArchiMate Model Exchange files in VS Code, with an embeddable JavaScript viewer.",
   "version": "0.1.0",
-  "publisher": "fideocam",
-  "license": "MIT",
+  "publisher": "annala-son",
+  "author": "Annala & Son",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1B333C",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/fideocam/ArchimateViewer#readme",
+  "bugs": {
+    "url": "https://github.com/fideocam/ArchimateViewer/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/fideocam/ArchimateViewer"

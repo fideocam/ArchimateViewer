@@ -38,7 +38,14 @@ export class ArchimateEditorProvider implements vscode.CustomTextEditorProvider 
     });
     webviewPanel.onDidDispose(() => change.dispose());
 
-    webviewPanel.webview.onDidReceiveMessage((message) => {
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      if (message.type === "apply" && typeof message.text === "string") {
+        const edit = new vscode.WorkspaceEdit();
+        const end = document.positionAt(document.getText().length);
+        edit.replace(document.uri, new vscode.Range(new vscode.Position(0, 0), end), message.text);
+        await vscode.workspace.applyEdit(edit);
+        return;
+      }
       if (message.type === "ready") {
         if (!looksLikeArchimate(document.getText())) {
           webviewPanel.webview.postMessage({
