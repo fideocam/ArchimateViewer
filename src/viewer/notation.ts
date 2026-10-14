@@ -4,7 +4,8 @@ import type {
   ElementShape,
   Layer,
   MarkerKind,
-  RelationshipNotation
+  RelationshipNotation,
+  RelationshipNotationOptions
 } from "./types";
 
 const LAYER_FILL: Record<Layer, string> = {
@@ -124,6 +125,15 @@ const RELATIONSHIPS: Record<string, RelationshipNotation> = {
   Association: { dash: "solid", sourceMarker: "none", targetMarker: "none" }
 };
 
+export function normalizeRelationshipType(type: string): string {
+  const raw = type.includes(":") ? type.slice(type.indexOf(":") + 1) : type;
+  const trimmed = raw.endsWith("Relationship") ? raw.slice(0, -"Relationship".length) : raw;
+  if (trimmed === "UsedBy") {
+    return "Serving";
+  }
+  return trimmed;
+}
+
 export function getElementNotation(type: string): ElementNotation {
   const spec = ELEMENTS[type] || inferFromName(type);
   return {
@@ -136,9 +146,26 @@ export function getElementNotation(type: string): ElementNotation {
   };
 }
 
-export function getRelationshipNotation(type: string): RelationshipNotation {
+export function getRelationshipNotation(
+  type: string,
+  options: RelationshipNotationOptions = {}
+): RelationshipNotation {
+  const kind = normalizeRelationshipType(type);
+  if (kind === "Access") {
+    const access = options.accessType || "Access";
+    if (access === "Read") {
+      return { dash: "dotted", sourceMarker: "open-arrow", targetMarker: "none" };
+    }
+    if (access === "ReadWrite") {
+      return { dash: "dotted", sourceMarker: "open-arrow", targetMarker: "open-arrow" };
+    }
+    return { dash: "dotted", sourceMarker: "none", targetMarker: "open-arrow" };
+  }
+  if (kind === "Association" && options.isDirected) {
+    return { dash: "solid", sourceMarker: "none", targetMarker: "open-arrow" };
+  }
   return (
-    RELATIONSHIPS[type] || {
+    RELATIONSHIPS[kind] || {
       dash: "solid" as DashStyle,
       sourceMarker: "none" as MarkerKind,
       targetMarker: "none" as MarkerKind

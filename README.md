@@ -24,6 +24,8 @@ Open this folder in VS Code / Cursor and press **F5**. A new Extension Developme
 
 The F5 sample workspace already sets that association.
 
+The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After F5 or installing the VSIX, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), and `identifier`/`xsi:type` on elements. Example output: `samples/archigpt-agent.xml`.
+
 Wheel to zoom, drag the canvas to pan, use the toolbar to fit or switch views.
 
 ## Embed the JavaScript viewer
@@ -76,11 +78,25 @@ Then open http://localhost:4173/demo/ — load a sample, or open/drop an `.xml` 
 
 ## ArchiMate coverage
 
-Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`), including elements, relationships, diagram views, nested nodes, visual bounds, styles, and bendpoints. ArchiMate 2.x `label` text is also read.
+Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`), including elements, relationships, diagram views, visual bounds, styles, and bendpoints. ArchiMate 2.x `label` text is also read. Nested model elements inside another element box are drawn as **separate boxes with relationship arrows** (not both nesting and an arrow). Visual grouping containers (layer frames without an `elementRef`) stay as frames.
 
 **Elements:** Business, Application, Technology, Physical, Motivation, Strategy, Implementation & Migration, plus Grouping, Location, and Junctions. Shapes follow ArchiMate aspect conventions (square = active structure, rounded = behavior, folded corner = passive structure, ellipse/bevel = motivation, 3D box = nodes/devices). Layer colours match the usual Archi palette.
 
-**Relationships:** Composition, Aggregation, Assignment, Realization, Serving, Access, Influence, Triggering, Flow, Specialization, Association — with the standard line styles and end markers.
+**Relationships (full exchange set):**
+
+| Type | Line | Ends |
+| --- | --- | --- |
+| Association | solid | none, or open arrow if directed |
+| Assignment | solid | filled circle at source |
+| Realization | dashed | open arrow at target |
+| Serving (Used-By) | solid | open arrow at target |
+| Access | dotted | open arrow: Write → target, Read → source, ReadWrite → both |
+| Influence | dashed | open arrow at target (optional +/- modifier) |
+| Triggering | solid | filled arrow at target |
+| Flow | dashed | filled arrow at target |
+| Specialization | solid | open triangle at target |
+| Composition | solid | filled diamond at source |
+| Aggregation | solid | open diamond at source |
 
 Unknown types fall back to a labelled rectangle / solid connector.
 

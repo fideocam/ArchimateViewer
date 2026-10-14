@@ -39,7 +39,13 @@ export interface ArchiMateRelationship {
   target: string;
   accessType?: string;
   modifier?: string;
+  isDirected?: boolean;
   documentation?: string;
+}
+
+export interface RelationshipNotationOptions {
+  accessType?: string;
+  isDirected?: boolean;
 }
 
 export interface DiagramNode {
@@ -50,6 +56,7 @@ export interface DiagramNode {
   w: number;
   h: number;
   elementRef?: string;
+  viewRef?: string;
   label?: string;
   style?: VisualStyle;
   children: DiagramNode[];
@@ -70,6 +77,7 @@ export interface DiagramView {
   identifier: string;
   name: string;
   documentation?: string;
+  viewRefs: string[];
   nodes: DiagramNode[];
   connections: DiagramConnection[];
 }

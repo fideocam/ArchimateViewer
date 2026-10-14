@@ -1,4 +1,5 @@
-import { dashArray, getElementNotation, getRelationshipNotation } from "./notation";
+import { dashArray, getElementNotation, getRelationshipNotation, normalizeRelationshipType } from "./notation";
+import { unnestElementBoxes } from "./unnest";
 import type {
   ArchiMateModel,
   DiagramConnection,
@@ -33,6 +34,7 @@ const ICON_SCALE = 1.7;
 const ICON_BOX = 14;
 
 export function renderView(view: DiagramView, model: ArchiMateModel): string {
+  unnestElementBoxes(view, model);
   const abs = flattenNodes(view.nodes, model, 0, 0);
   const byId = new Map(abs.map((item) => [item.node.identifier, item]));
   const bounds = contentBounds(abs, view.connections);
@@ -299,15 +301,19 @@ function renderConnection(
     return "";
   }
   const rel = conn.relationshipRef ? model.relationships.get(conn.relationshipRef) : undefined;
-  const type = rel?.type || "Association";
-  const notation = getRelationshipNotation(type);
+  const rawType = rel?.type || (conn.xsiType !== "Relationship" && conn.xsiType !== "Line" ? conn.xsiType : "");
+  const type = normalizeRelationshipType(rawType || "Association");
+  const notation = getRelationshipNotation(type, {
+    accessType: rel?.accessType,
+    isDirected: rel?.isDirected
+  });
   const stroke = color(conn.style?.lineColor, "#222");
   const dash = dashArray(notation.dash);
   const points = connectionRoute(boxOf(source), boxOf(target), conn.bendpoints);
   const d = pointsToPath(points);
   const srcMarker = markerUrl(notation.sourceMarker, stroke, "start");
   const tgtMarker = markerUrl(notation.targetMarker, stroke, "end");
-  const label = conn.label || rel?.name || "";
+  const label = conn.label || rel?.name || rel?.modifier || "";
   const mid = points[Math.floor(points.length / 2)];
   const labelSvg = label
     ? `<text class="av-label" x="${mid.x}" y="${mid.y - 6}" text-anchor="middle" font-size="11" font-family="Segoe UI, Helvetica, Arial, sans-serif" fill="${stroke}">${esc(label)}</text>`
