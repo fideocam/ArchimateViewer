@@ -2,7 +2,7 @@
   "name": "archimate-viewer",
   "displayName": "ArchiMate Viewer",
   "description": "View Open Group ArchiMate Model Exchange files in VS Code, with an embeddable JavaScript viewer.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "annala-son",
   "author": "Annala & Son",
   "license": "SEE LICENSE IN LICENSE",
@@ -70,6 +70,8 @@
     },
     "chatAgents": [
       {
+        "name": "ArchiGPT",
+        "description": "Create and edit Open Group ArchiMate Model Exchange XML that the ArchiMate Viewer can open and draw.",
         "path": "./ArchiGPT.agent.md"
       }
     ],

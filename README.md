@@ -1,6 +1,6 @@
 # ArchiMate Viewer
 
-VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and renders the diagram with pan/zoom. The rendering engine is a JavaScript viewer you can also embed on a web page.
+VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and renders the diagram with pan/zoom.
 
 This is a **viewer**, not a modeler.
 
@@ -26,10 +26,11 @@ Open this folder in VS Code / Cursor and press **F5**. A new Extension Developme
 The F5 sample workspace already sets that association.
 <!-- /marketplace:omit -->
 
-The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After F5 or installing the VSIX, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), and `identifier`/`xsi:type` on elements. Example output: `samples/archigpt-agent.xml`.
+The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After installing the extension, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), and `identifier`/`xsi:type` on elements. Example output: `samples/archigpt-agent.xml`.
 
 Wheel to zoom, drag the canvas to pan, use the toolbar to fit or switch views.
 
+<!-- marketplace:omit -->
 ## Embed the JavaScript viewer
 
 Attach to a container, call `importXML`, then zoom.
@@ -77,6 +78,7 @@ npm run demo
 ```
 
 Then open http://localhost:4173/demo/ — load a sample, or open/drop an `.xml` exchange file.
+<!-- /marketplace:omit -->
 
 ## ArchiMate coverage
 
@@ -102,11 +104,12 @@ Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xs
 
 Unknown types fall back to a labelled rectangle / solid connector.
 
+<!-- marketplace:omit -->
 ## Scripts
 
 | Script | Purpose |
 | --- | --- |
 | `npm test` | Parser, notation, and viewer tests |
 | `npm run compile` | Extension host, webview bundle, and library dist |
-| `npm run demo` | Static demo at `/demo` |
 | `npm run package` | Build a `.vsix` |
+<!-- /marketplace:omit -->
