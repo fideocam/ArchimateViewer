@@ -56,6 +56,7 @@ export interface DiagramNode {
   w: number;
   h: number;
   elementRef?: string;
+  viewRef?: string;
   label?: string;
   style?: VisualStyle;
   children: DiagramNode[];
@@ -76,6 +77,7 @@ export interface DiagramView {
   identifier: string;
   name: string;
   documentation?: string;
+  viewRefs: string[];
   nodes: DiagramNode[];
   connections: DiagramConnection[];
 }

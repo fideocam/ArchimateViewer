@@ -26,10 +26,10 @@ class DiagramPointerEvent extends window.Event {
   }
 }
 
-const fixture = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "fixtures/layered-view.xml"),
-  "utf8"
-);
+const dir = dirname(fileURLToPath(import.meta.url));
+const fixture = readFileSync(join(dir, "fixtures/layered-view.xml"), "utf8");
+const variants = readFileSync(join(dir, "fixtures/view-variants.xml"), "utf8");
+const claims = readFileSync(join(dir, "../samples/archinsurance-claims.xml"), "utf8");
 
 describe("renderView", () => {
   it("emits recognizable ArchiMate shapes, nested nodes and relationship markers", () => {
@@ -93,6 +93,50 @@ describe("renderView", () => {
     assert.match(svg, /marker-end=/);
     assert.match(svg, /stroke-dasharray="2 3"/); // Access dotted
     assert.match(svg, /stroke-dasharray="8 5"/); // Realization / Flow / Influence dashed
+  });
+
+  it("draws every diagram view that used to render as a blank canvas", () => {
+    const model = parseModel(variants);
+    const previouslyBlank = [
+      "id-view-nested",
+      "id-view-viewpoint",
+      "id-view-ref",
+      "id-view-nobounds",
+      "id-view-group",
+      "id-view-archi",
+      "id-view-conns"
+    ];
+    for (const id of previouslyBlank) {
+      const view = model.views.find((item) => item.identifier === id);
+      assert.ok(view, `missing recovered view ${id}`);
+      const svg = renderView(view, model);
+      assert.match(svg, /class="av-node"/, `${view.name} should draw nodes`);
+      assert.doesNotMatch(svg, /viewBox="0 0 1 1"/, `${view.name} should not be an empty canvas`);
+    }
+
+    const archi = renderView(model.views.find((view) => view.identifier === "id-view-archi")!, model);
+    assert.match(archi, /Claims Actor/);
+    assert.match(archi, /Claim File/);
+    assert.match(archi, /data-kind="relationship"/);
+
+    const group = renderView(model.views.find((view) => view.identifier === "id-view-group")!, model);
+    assert.match(group, /Claims Actor/);
+    assert.match(group, /Clerk Role/);
+
+    const conns = renderView(model.views.find((view) => view.identifier === "id-view-conns")!, model);
+    assert.match(conns, /Claims Actor/);
+    assert.match(conns, /Handle Claim/);
+    assert.match(conns, /data-kind="relationship"/);
+  });
+
+  it("renders every view in the claims sample", () => {
+    const model = parseModel(claims);
+    assert.ok(model.views.length >= 2);
+    for (const view of model.views) {
+      const svg = renderView(view, model);
+      assert.match(svg, /class="av-node"/, `${view.name} should draw`);
+      assert.doesNotMatch(svg, /viewBox="0 0 1 1"/);
+    }
   });
 
   it("uses a 2px stroke and larger corner icons", () => {
@@ -434,6 +478,20 @@ describe("NavigatedViewer", () => {
     assert.equal(saved.includes('identifier="n-shared-2"'), true);
     assert.equal(saved.includes('identifier="n-shared-1"'), false);
 
+    viewer.destroy();
+  });
+
+  it("opens a previously blank Archi-schema view from an exchange file", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    await viewer.importXML(variants);
+    await viewer.openView("id-view-archi");
+    assert.ok(container.querySelector('[data-element-id="n-archi-actor"]'));
+    assert.ok(container.querySelector('[data-element-id="n-archi-obj"]'));
+    assert.match(container.querySelector("svg")?.innerHTML || "", /Claims Actor/);
+    await viewer.openView("id-view-conns");
+    assert.match(container.querySelector("svg")?.innerHTML || "", /Handle Claim/);
     viewer.destroy();
   });
 
