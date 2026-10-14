@@ -24,6 +24,8 @@ Open this folder in VS Code / Cursor and press **F5**. A new Extension Developme
 
 The F5 sample workspace already sets that association.
 
+The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After F5 or installing the VSIX, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), and `identifier`/`xsi:type` on elements. Example output: `samples/archigpt-agent.xml`.
+
 Wheel to zoom, drag the canvas to pan, use the toolbar to fit or switch views.
 
 ## Embed the JavaScript viewer

@@ -68,6 +68,11 @@
         }
       ]
     },
+    "chatAgents": [
+      {
+        "path": "./ArchiGPT.agent.md"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "archimate.viewer",

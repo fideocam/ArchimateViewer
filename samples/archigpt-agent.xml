@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       identifier="id-model-archigpt">
+  <name>ArchiGPT agent contract</name>
+  <elements>
+    <element identifier="id-left" xsi:type="BusinessActor"><name>Source</name></element>
+    <element identifier="id-right" xsi:type="BusinessProcess"><name>Target</name></element>
+    <element identifier="id-obj" xsi:type="BusinessObject"><name>Object</name></element>
+    <element identifier="id-comp" xsi:type="ApplicationComponent"><name>Component</name></element>
+    <element identifier="id-svc" xsi:type="ApplicationService"><name>Service</name></element>
+    <element identifier="id-goal" xsi:type="Goal"><name>Goal</name></element>
+    <element identifier="id-role" xsi:type="BusinessRole"><name>Role</name></element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-comp-rel" source="id-comp" target="id-svc" xsi:type="Composition"/>
+    <relationship identifier="id-agg-rel" source="id-comp" target="id-obj" xsi:type="Aggregation"/>
+    <relationship identifier="id-asg-rel" source="id-left" target="id-right" xsi:type="Assignment"/>
+    <relationship identifier="id-real-rel" source="id-comp" target="id-svc" xsi:type="Realization"/>
+    <relationship identifier="id-serve-rel" source="id-svc" target="id-right" xsi:type="Serving"/>
+    <relationship identifier="id-acc-rel" source="id-right" target="id-obj" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-trig-rel" source="id-left" target="id-right" xsi:type="Triggering"/>
+    <relationship identifier="id-flow-rel" source="id-right" target="id-svc" xsi:type="Flow"/>
+    <relationship identifier="id-spec-rel" source="id-role" target="id-left" xsi:type="Specialization"/>
+    <relationship identifier="id-inf-rel" source="id-svc" target="id-goal" xsi:type="Influence" modifier="+"/>
+    <relationship identifier="id-assoc-rel" source="id-role" target="id-goal" xsi:type="Association"/>
+  </relationships>
+  <views>
+    <diagrams>
+      <view identifier="id-view-archigpt">
+        <name>ArchiGPT arrows</name>
+        <node identifier="n-frame" xsi:type="Container" x="20" y="20" w="720" h="380">
+          <label>Application cooperation</label>
+        </node>
+        <node identifier="n-left" xsi:type="Element" elementRef="id-left" x="40" y="40" w="140" h="60"/>
+        <node identifier="n-role" xsi:type="Element" elementRef="id-role" x="40" y="160" w="140" h="60"/>
+        <node identifier="n-right" xsi:type="Element" elementRef="id-right" x="320" y="40" w="160" h="60"/>
+        <node identifier="n-obj" xsi:type="Element" elementRef="id-obj" x="320" y="160" w="140" h="60"/>
+        <node identifier="n-comp" xsi:type="Element" elementRef="id-comp" x="40" y="300" w="160" h="70"/>
+        <node identifier="n-svc" xsi:type="Element" elementRef="id-svc" x="320" y="300" w="160" h="60"/>
+        <node identifier="n-goal" xsi:type="Element" elementRef="id-goal" x="560" y="160" w="150" h="70"/>
+        <connection identifier="c-asg" xsi:type="Relationship" relationshipRef="id-asg-rel" source="n-left" target="n-right"/>
+        <connection identifier="c-trig" xsi:type="Relationship" relationshipRef="id-trig-rel" source="n-left" target="n-right"/>
+        <connection identifier="c-spec" xsi:type="Relationship" relationshipRef="id-spec-rel" source="n-role" target="n-left"/>
+        <connection identifier="c-acc" xsi:type="Relationship" relationshipRef="id-acc-rel" source="n-right" target="n-obj"/>
+        <connection identifier="c-agg" xsi:type="Relationship" relationshipRef="id-agg-rel" source="n-comp" target="n-obj"/>
+        <connection identifier="c-comp" xsi:type="Relationship" relationshipRef="id-comp-rel" source="n-comp" target="n-svc"/>
+        <connection identifier="c-real" xsi:type="Relationship" relationshipRef="id-real-rel" source="n-comp" target="n-svc"/>
+        <connection identifier="c-serve" xsi:type="Relationship" relationshipRef="id-serve-rel" source="n-svc" target="n-right"/>
+        <connection identifier="c-flow" xsi:type="Relationship" relationshipRef="id-flow-rel" source="n-right" target="n-svc"/>
+        <connection identifier="c-inf" xsi:type="Relationship" relationshipRef="id-inf-rel" source="n-svc" target="n-goal"/>
+        <connection identifier="c-assoc" xsi:type="Relationship" relationshipRef="id-assoc-rel" source="n-role" target="n-goal"/>
+      </view>
+    </diagrams>
+  </views>
+</model>

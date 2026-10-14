@@ -9,6 +9,7 @@ import { parseModel } from "../src/viewer/parser.ts";
 const dir = dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(join(dir, "fixtures/layered-view.xml"), "utf8");
 const variants = readFileSync(join(dir, "fixtures/view-variants.xml"), "utf8");
+const archigpt = readFileSync(join(dir, "fixtures/archigpt-agent.xml"), "utf8");
 
 describe("parseModel", () => {
   it("reads model name, elements, relationships and diagram views", () => {
@@ -106,5 +107,37 @@ describe("parseModel", () => {
     const viewpoint = model.views.find((view) => view.identifier === "id-view-viewpoint");
     assert.ok(viewpoint);
     assert.ok(viewpoint.nodes.length >= 2);
+  });
+
+  it("does not draw plugin-JSON style viewsAndDiagrams/id XML", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" identifier="m">
+  <name>Legacy agent shape</name>
+  <elements>
+    <element id="id-actor" type="BusinessActor"><name>Actor</name></element>
+  </elements>
+  <relationships/>
+  <viewsAndDiagrams>
+    <view name="Idea" id="v1">
+      <node elementId="id-actor" x="10" y="10" width="120" height="55"/>
+    </view>
+  </viewsAndDiagrams>
+</model>`;
+    const model = parseModel(xml);
+    assert.equal(model.elements.size, 0, "elements must use identifier, not id");
+    const view = model.views[0];
+    assert.ok(!view || view.nodes.every((node) => !node.elementRef), "nodes must use elementRef, not elementId");
+  });
+
+  it("parses ArchiGPT agent-shaped exchange XML without requiring xsi:type=Diagram", () => {
+    assert.equal(/<view[^>]*xsi:type="Diagram"/.test(archigpt), false);
+    const model = parseModel(archigpt);
+    assert.equal(model.views.length, 1);
+    assert.equal(model.views[0].identifier, "id-view-archigpt");
+    assert.ok(model.views[0].nodes.some((node) => node.elementRef === "id-left"));
+    assert.ok(model.views[0].nodes.some((node) => node.xsiType === "Container" && !node.elementRef));
+    assert.equal(model.elements.get("id-left")?.type, "BusinessActor");
+    assert.equal(model.relationships.get("id-serve-rel")?.type, "Serving");
+    assert.ok(model.views[0].connections.length >= 11);
   });
 });

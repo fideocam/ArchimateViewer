@@ -12,3 +12,4 @@ out/viewer/**
 dist/**
 *.md
 !README.md
+!ArchiGPT.agent.md

@@ -30,6 +30,7 @@ const dir = dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(join(dir, "fixtures/layered-view.xml"), "utf8");
 const variants = readFileSync(join(dir, "fixtures/view-variants.xml"), "utf8");
 const claims = readFileSync(join(dir, "../samples/archinsurance-claims.xml"), "utf8");
+const archigpt = readFileSync(join(dir, "fixtures/archigpt-agent.xml"), "utf8");
 
 describe("renderView", () => {
   it("emits recognizable ArchiMate shapes, nested nodes and relationship markers", () => {
@@ -127,6 +128,29 @@ describe("renderView", () => {
     assert.match(conns, /Claims Actor/);
     assert.match(conns, /Handle Claim/);
     assert.match(conns, /data-kind="relationship"/);
+  });
+
+  it("renders ArchiGPT agent-shaped XML as sibling boxes with relationship arrows", () => {
+    const model = parseModel(archigpt);
+    const svg = renderView(model.views[0], model);
+    assert.match(svg, /class="av-node"/);
+    assert.doesNotMatch(svg, /viewBox="0 0 1 1"/);
+    assert.doesNotMatch(svg, /data-parent-id="n-comp"/);
+    for (const type of [
+      "Composition",
+      "Aggregation",
+      "Assignment",
+      "Realization",
+      "Serving",
+      "Access",
+      "Influence",
+      "Triggering",
+      "Flow",
+      "Specialization",
+      "Association"
+    ]) {
+      assert.match(svg, new RegExp(`data-type="${type}"`));
+    }
   });
 
   it("renders every view in the claims sample", () => {
