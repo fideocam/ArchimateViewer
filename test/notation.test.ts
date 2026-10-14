@@ -34,13 +34,33 @@ describe("ArchiMate notation", () => {
     assert.deepEqual(getRelationshipNotation("Composition").sourceMarker, "filled-diamond");
     assert.equal(getRelationshipNotation("Aggregation").sourceMarker, "open-diamond");
     assert.equal(getRelationshipNotation("Assignment").sourceMarker, "filled-circle");
+    assert.equal(getRelationshipNotation("Assignment").targetMarker, "none");
     assert.equal(getRelationshipNotation("Realization").dash, "dashed");
     assert.equal(getRelationshipNotation("Realization").targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("Serving").dash, "solid");
     assert.equal(getRelationshipNotation("Serving").targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("UsedBy").targetMarker, "open-arrow");
     assert.equal(getRelationshipNotation("Access").dash, "dotted");
+    assert.equal(getRelationshipNotation("Triggering").dash, "solid");
     assert.equal(getRelationshipNotation("Triggering").targetMarker, "filled-arrow");
     assert.equal(getRelationshipNotation("Flow").dash, "dashed");
+    assert.equal(getRelationshipNotation("Flow").targetMarker, "filled-arrow");
     assert.equal(getRelationshipNotation("Specialization").targetMarker, "open-triangle");
     assert.equal(getRelationshipNotation("Influence").dash, "dashed");
+    assert.equal(getRelationshipNotation("Influence").targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("Association").sourceMarker, "none");
+    assert.equal(getRelationshipNotation("Association").targetMarker, "none");
+  });
+
+  it("covers Access direction, directed Association, and Relationship-suffixed type names", () => {
+    assert.equal(getRelationshipNotation("Access", { accessType: "Write" }).targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("Access", { accessType: "Read" }).sourceMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("Access", { accessType: "Read" }).targetMarker, "none");
+    const rw = getRelationshipNotation("Access", { accessType: "ReadWrite" });
+    assert.equal(rw.sourceMarker, "open-arrow");
+    assert.equal(rw.targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("Association", { isDirected: true }).targetMarker, "open-arrow");
+    assert.equal(getRelationshipNotation("CompositionRelationship").sourceMarker, "filled-diamond");
+    assert.equal(getRelationshipNotation("UsedByRelationship").targetMarker, "open-arrow");
   });
 });

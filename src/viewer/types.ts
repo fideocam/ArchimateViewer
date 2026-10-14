@@ -39,7 +39,13 @@ export interface ArchiMateRelationship {
   target: string;
   accessType?: string;
   modifier?: string;
+  isDirected?: boolean;
   documentation?: string;
+}
+
+export interface RelationshipNotationOptions {
+  accessType?: string;
+  isDirected?: boolean;
 }
 
 export interface DiagramNode {

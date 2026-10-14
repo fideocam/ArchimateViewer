@@ -48,12 +48,23 @@ describe("renderView", () => {
       svg,
       /data-element-id="id-n-customer"[\s\S]*?<text class="av-label" x="120" y="100" text-anchor="middle" dominant-baseline="central"/
     );
+  });
 
-    const parent = svg.match(
-      /data-element-id="id-n-claim-app"[\s\S]*?<text[^>]* y="([^"]+)"[\s\S]*?Claim Management/
-    );
-    assert.ok(parent);
-    assert.ok(Number(parent[1]) < 280, "nested parent label should sit at the top, not over children");
+  it("draws nested model elements as separate boxes with relationship arrows", () => {
+    const model = parseModel(fixture);
+    const svg = renderView(model.views[0], model);
+
+    assert.match(svg, /data-element-id="id-n-claim-app"/);
+    assert.match(svg, /data-element-id="id-n-claim-fn"/);
+    assert.match(svg, /data-element-id="id-n-claim-data"/);
+    assert.doesNotMatch(svg, /data-parent-id="id-n-claim-app"/);
+    assert.match(svg, /data-type="Composition"/);
+    assert.match(svg, /data-type="Aggregation"/);
+
+    const parent = svg.match(/data-element-id="id-n-claim-app"[^>]*data-h="(\d+(?:\.\d+)?)"/);
+    const child = svg.match(/data-element-id="id-n-claim-fn"[^>]*/);
+    assert.ok(parent && child);
+    assert.ok(Number(parent[1]) <= 70, "parent element box should not wrap its former children");
   });
 
   it("renders the relationships sample with typed connectors", () => {
@@ -63,11 +74,25 @@ describe("renderView", () => {
     );
     const model = parseModel(xml);
     const svg = renderView(model.views[0], model);
-    assert.match(svg, /data-type="Composition"/);
-    assert.match(svg, /data-type="Serving"/);
-    assert.match(svg, /data-type="Triggering"/);
-    assert.match(svg, /data-type="Specialization"/);
+    for (const type of [
+      "Composition",
+      "Aggregation",
+      "Assignment",
+      "Realization",
+      "Serving",
+      "Access",
+      "Influence",
+      "Triggering",
+      "Flow",
+      "Specialization",
+      "Association"
+    ]) {
+      assert.match(svg, new RegExp(`data-type="${type}"`));
+    }
     assert.match(svg, /marker-start=/);
+    assert.match(svg, /marker-end=/);
+    assert.match(svg, /stroke-dasharray="2 3"/); // Access dotted
+    assert.match(svg, /stroke-dasharray="8 5"/); // Realization / Flow / Influence dashed
   });
 
   it("uses a 2px stroke and larger corner icons", () => {
@@ -141,7 +166,7 @@ describe("NavigatedViewer", () => {
     const flow = viewer.get("model").views[0].connections.find((conn) => conn.identifier === "id-c-flow");
     assert.ok(customer && claimFn && flow);
     assert.equal(customer.x, 30);
-    assert.equal(claimFn.x, 20);
+    assert.equal(claimFn.x, 260);
     assert.equal(flow.bendpoints[0].x, 490);
 
     const beforeTrigger = container.querySelector('[data-element-id="id-c-trigger"] path')?.getAttribute("d");
@@ -155,11 +180,11 @@ describe("NavigatedViewer", () => {
     );
 
     canvas.zoom(1);
+    const childX = claimFn.x;
+    const flowX = flow.bendpoints[0].x;
     drag(container, "id-n-claim-app", 25, 10);
-    assert.equal(claimFn.x, 20);
-    assert.equal(flow.bendpoints[0].x, 515);
-    assert.equal(flow.bendpoints[0].y, 320);
-    assert.equal(container.querySelector('[data-element-id="id-n-claim-fn"]')?.getAttribute("data-x"), "305");
+    assert.equal(claimFn.x, childX, "unnested children must not move with the former parent");
+    assert.equal(flow.bendpoints[0].x, flowX);
     assert.equal(container.querySelector('[data-element-id="id-n-claim-app"]')?.getAttribute("data-x"), "285");
 
     viewer.destroy();
@@ -255,19 +280,21 @@ describe("NavigatedViewer", () => {
     const handle = container.querySelector('[data-element-id="id-c-flow"] .av-connection-kink[data-index="0"]');
     assert.ok(handle);
 
+    const orig = { x: flow.bendpoints[0].x, y: flow.bendpoints[0].y };
     dragElement(handle, container, 15, -10);
     assert.equal(flow.bendpoints.length, 1);
-    assert.equal(flow.bendpoints[0].x, 505);
-    assert.equal(flow.bendpoints[0].y, 300);
+    assert.equal(flow.bendpoints[0].x, orig.x + 15);
+    assert.equal(flow.bendpoints[0].y, orig.y - 10);
 
     drag(container, "id-c-flow", 0, 20);
     assert.equal(flow.bendpoints.length, 2);
     const kept = { x: flow.bendpoints[1].x, y: flow.bendpoints[1].y };
     const first = container.querySelector('[data-element-id="id-c-flow"] .av-connection-kink[data-index="0"]');
     assert.ok(first);
+    const before = { x: flow.bendpoints[0].x, y: flow.bendpoints[0].y };
     dragElement(first, container, -20, 5);
-    assert.equal(flow.bendpoints[0].x, 485);
-    assert.equal(flow.bendpoints[0].y, 305);
+    assert.equal(flow.bendpoints[0].x, before.x - 20);
+    assert.equal(flow.bendpoints[0].y, before.y + 5);
     assert.equal(flow.bendpoints[1].x, kept.x);
     assert.equal(flow.bendpoints[1].y, kept.y);
     assert.ok(container.querySelector('[data-element-id="id-c-flow"].is-selected'));

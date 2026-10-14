@@ -9,6 +9,7 @@ import type {
   RgbColor,
   VisualStyle
 } from "./types";
+import { normalizeRelationshipType } from "./notation";
 import {
   attr,
   childrenNamed,
@@ -68,6 +69,7 @@ export function parseModel(xml: string): ArchiMateModel {
         target,
         accessType: attr(el, "accessType"),
         modifier: attr(el, "modifier"),
+        isDirected: attr(el, "isDirected") === "true" || attr(el, "directed") === "true",
         documentation: textOf(el, ["documentation"]) || undefined
       });
     }
@@ -190,12 +192,3 @@ function parseColor(el: Element): RgbColor {
   return color;
 }
 
-function normalizeRelationshipType(type: string): string {
-  if (type.endsWith("Relationship")) {
-    return type.slice(0, -"Relationship".length);
-  }
-  if (type === "UsedBy" || type === "UsedByRelationship") {
-    return "Serving";
-  }
-  return type;
-}

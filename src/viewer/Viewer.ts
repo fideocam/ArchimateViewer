@@ -2,6 +2,7 @@ import { Canvas } from "./canvas";
 import { applyDeletion, planDeletion, removeFromXml, setIdentifierAttribute } from "./delete";
 import { parseModel } from "./parser";
 import { renderView } from "./renderer";
+import { unnestElementBoxes } from "./unnest";
 import type { ArchiMateModel, DiagramConnection, DiagramNode, ImportResult, Point, ViewerOptions } from "./types";
 
 type Handler = (payload?: unknown) => void;
@@ -60,6 +61,9 @@ export class Viewer {
     }
     this.emit("import.parse.start");
     const model = parseModel(xml);
+    for (const diagram of model.views) {
+      unnestElementBoxes(diagram, model);
+    }
     this.model = model;
     this.sourceXml = xml;
     this.emit("import.parse.complete", { model });
