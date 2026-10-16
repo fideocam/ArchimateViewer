@@ -11,4 +11,5 @@ node_modules/**
 out/viewer/**
 dist/**
 *.md
-!README.md
+!ArchiGPT.agent.md
+scripts/**

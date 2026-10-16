@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url";
 import "./setup-dom.ts";
 import { parseModel } from "../src/viewer/parser.ts";
 
-const fixture = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "fixtures/layered-view.xml"),
-  "utf8"
-);
+const dir = dirname(fileURLToPath(import.meta.url));
+const fixture = readFileSync(join(dir, "fixtures/layered-view.xml"), "utf8");
+const variants = readFileSync(join(dir, "fixtures/view-variants.xml"), "utf8");
+const archigpt = readFileSync(join(dir, "fixtures/archigpt-agent.xml"), "utf8");
 
 describe("parseModel", () => {
   it("reads model name, elements, relationships and diagram views", () => {
@@ -49,5 +49,95 @@ describe("parseModel", () => {
 
   it("rejects non-ArchiMate XML", () => {
     assert.throws(() => parseModel("<root/>"), /ArchiMate/i);
+  });
+
+  it("recovers nested, referenced, Archi-schema and connection-only diagram views", () => {
+    const model = parseModel(variants);
+    const names = model.views.map((view) => view.name);
+    assert.equal(names.includes("Folder"), false);
+    assert.equal(names.includes("Organization catalog"), false);
+
+    const nested = model.views.find((view) => view.identifier === "id-view-nested");
+    assert.ok(nested);
+    assert.equal(nested.nodes.some((node) => node.elementRef === "id-actor"), true);
+
+    const archi = model.views.find((view) => view.identifier === "id-view-archi");
+    assert.ok(archi);
+    assert.equal(archi.nodes.length, 2);
+    assert.equal(archi.nodes[0].w, 140);
+    assert.equal(archi.nodes[0].x, 40);
+    assert.equal(archi.connections.length, 1);
+
+    const noBounds = model.views.find((view) => view.identifier === "id-view-nobounds");
+    assert.ok(noBounds);
+    const actor = noBounds.nodes.find((node) => node.identifier === "n-actor");
+    const proc = noBounds.nodes.find((node) => node.identifier === "n-proc");
+    assert.ok(actor && proc);
+    assert.equal(actor.w, 140);
+    assert.equal(proc.x, 200);
+    assert.equal(noBounds.connections[0].source, "n-actor");
+    assert.equal(noBounds.connections[0].target, "n-proc");
+
+    const conns = model.views.find((view) => view.identifier === "id-view-conns");
+    assert.ok(conns);
+    assert.ok(conns.nodes.length >= 2);
+    assert.equal(
+      conns.nodes.some((node) => node.elementRef === "id-actor"),
+      true
+    );
+    assert.equal(
+      conns.nodes.some((node) => node.elementRef === "id-proc"),
+      true
+    );
+
+    const group = model.views.find((view) => view.identifier === "id-view-group");
+    assert.ok(group);
+    const grouping = group.nodes.find((node) => node.identifier === "n-group");
+    assert.ok(grouping);
+    const memberRefs = new Set(
+      [grouping, ...grouping.children, ...group.nodes].map((node) => node.elementRef)
+    );
+    assert.equal(memberRefs.has("id-actor"), true);
+    assert.equal(memberRefs.has("id-role"), true);
+
+    const referenced = model.views.find((view) => view.identifier === "id-view-ref");
+    assert.ok(referenced);
+    assert.ok(referenced.nodes.some((node) => node.w > 0 && node.h > 0));
+
+    const viewpoint = model.views.find((view) => view.identifier === "id-view-viewpoint");
+    assert.ok(viewpoint);
+    assert.ok(viewpoint.nodes.length >= 2);
+  });
+
+  it("does not draw plugin-JSON style viewsAndDiagrams/id XML", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" identifier="m">
+  <name>Legacy agent shape</name>
+  <elements>
+    <element id="id-actor" type="BusinessActor"><name>Actor</name></element>
+  </elements>
+  <relationships/>
+  <viewsAndDiagrams>
+    <view name="Idea" id="v1">
+      <node elementId="id-actor" x="10" y="10" width="120" height="55"/>
+    </view>
+  </viewsAndDiagrams>
+</model>`;
+    const model = parseModel(xml);
+    assert.equal(model.elements.size, 0, "elements must use identifier, not id");
+    const view = model.views[0];
+    assert.ok(!view || view.nodes.every((node) => !node.elementRef), "nodes must use elementRef, not elementId");
+  });
+
+  it("parses ArchiGPT agent-shaped exchange XML without requiring xsi:type=Diagram", () => {
+    assert.equal(/<view[^>]*xsi:type="Diagram"/.test(archigpt), false);
+    const model = parseModel(archigpt);
+    assert.equal(model.views.length, 1);
+    assert.equal(model.views[0].identifier, "id-view-archigpt");
+    assert.ok(model.views[0].nodes.some((node) => node.elementRef === "id-left"));
+    assert.ok(model.views[0].nodes.some((node) => node.xsiType === "Container" && !node.elementRef));
+    assert.equal(model.elements.get("id-left")?.type, "BusinessActor");
+    assert.equal(model.relationships.get("id-serve-rel")?.type, "Serving");
+    assert.ok(model.views[0].connections.length >= 11);
   });
 });

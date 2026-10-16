@@ -1,4 +1,5 @@
-import { dashArray, getElementNotation, getRelationshipNotation } from "./notation";
+import { dashArray, getElementNotation, getRelationshipNotation, normalizeRelationshipType } from "./notation";
+import { unnestElementBoxes } from "./unnest";
 import type {
   ArchiMateModel,
   DiagramConnection,
@@ -18,25 +19,35 @@ interface AbsNode {
   type: string;
   name: string;
   notation: ElementNotation;
+  parentId?: string;
 }
 
-const PAD = 48;
+export interface Bounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const STROKE = 2;
+const ICON_SCALE = 1.7;
+const ICON_BOX = 14;
 
 export function renderView(view: DiagramView, model: ArchiMateModel): string {
+  unnestElementBoxes(view, model);
   const abs = flattenNodes(view.nodes, model, 0, 0);
   const byId = new Map(abs.map((item) => [item.node.identifier, item]));
   const bounds = contentBounds(abs, view.connections);
-  const width = Math.max(bounds.maxX + PAD, 400);
-  const height = Math.max(bounds.maxY + PAD, 300);
+  const width = Math.max(bounds.maxX - bounds.minX, 1);
+  const height = Math.max(bounds.maxY - bounds.minY, 1);
 
   const nodeSvg = abs.map((item) => renderNode(item)).join("");
   const connSvg = view.connections
     .map((conn) => renderConnection(conn, byId, model))
     .join("");
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="av-diagram" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" data-view-id="${esc(view.identifier)}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="av-diagram" overflow="visible" width="${width}" height="${height}" viewBox="${bounds.minX} ${bounds.minY} ${width} ${height}" data-view-id="${esc(view.identifier)}">
   <defs>${markerDefs()}</defs>
-  <rect class="av-backdrop" x="0" y="0" width="${width}" height="${height}" fill="#f7f7f5"/>
   <g class="av-nodes">${nodeSvg}</g>
   <g class="av-connections">${connSvg}</g>
 </svg>`;
@@ -46,7 +57,8 @@ function flattenNodes(
   nodes: DiagramNode[],
   model: ArchiMateModel,
   ox: number,
-  oy: number
+  oy: number,
+  parentId?: string
 ): AbsNode[] {
   const out: AbsNode[] = [];
   for (const node of nodes) {
@@ -63,64 +75,77 @@ function flattenNodes(
       absY,
       type,
       name,
+      parentId,
       notation: getElementNotation(type === "Note" ? "Grouping" : type)
     });
     if (node.children.length) {
-      out.push(...flattenNodes(node.children, model, absX, absY));
+      out.push(...flattenNodes(node.children, model, absX, absY, node.identifier));
     }
   }
   return out;
 }
 
 function contentBounds(nodes: AbsNode[], connections: DiagramConnection[]) {
-  let maxX = 0;
-  let maxY = 0;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
   for (const item of nodes) {
+    minX = Math.min(minX, item.absX);
+    minY = Math.min(minY, item.absY);
     maxX = Math.max(maxX, item.absX + item.node.w);
     maxY = Math.max(maxY, item.absY + item.node.h);
   }
   for (const conn of connections) {
     for (const bp of conn.bendpoints) {
+      minX = Math.min(minX, bp.x);
+      minY = Math.min(minY, bp.y);
       maxX = Math.max(maxX, bp.x);
       maxY = Math.max(maxY, bp.y);
     }
   }
-  return { maxX, maxY };
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+    return { minX: 0, minY: 0, maxX: 1, maxY: 1 };
+  }
+  return { minX, minY, maxX, maxY };
 }
 
 function renderNode(item: AbsNode): string {
   const { node, absX, absY, type, name, notation } = item;
   const fill = color(node.style?.fillColor, notation.fill);
   const strokeColor = color(node.style?.lineColor, notation.stroke);
-  const sw = node.style?.lineWidth || 1.25;
   const isNote = node.xsiType === "Label" && !node.elementRef;
   const isGroup = node.xsiType === "Container" && !node.elementRef;
   const nestedParent = node.children.length > 0;
   const topLabel = isGroup || nestedParent;
   const shape = isNote ? "note" : isGroup ? "dashed-rounded" : notation.shape;
   const dash = shape.startsWith("dashed") ? "5 4" : undefined;
-  const body = shapeMarkup(shape, absX, absY, node.w, node.h, fill, strokeColor, sw, dash);
-  const icon =
-    isNote || isGroup || shape === "circle"
-      ? ""
-      : iconMarkup(notation.icon, absX + node.w - 20, absY + 6, strokeColor);
+  const body = shapeMarkup(shape, absX, absY, node.w, node.h, fill, strokeColor, STROKE, dash);
+  const showIcon = !isNote && !isGroup && shape === "rect" && notation.icon !== "none";
+  const iconPad = ICON_BOX * ICON_SCALE + 6;
+  const icon = showIcon
+    ? iconMarkup(notation.icon, absX + node.w - iconPad, absY + 4, strokeColor)
+    : "";
   const fontSize = node.style?.font?.size || (isGroup ? 11 : 12);
   const fontColor = color(node.style?.font?.color, "#222");
-  const labelY = topLabel ? absY + 16 : absY + node.h / 2;
+  const depth = shape === "box3d" ? Math.min(12, node.w / 6, node.h / 4) : 0;
+  const labelX = topLabel ? absX + 8 : absX + (node.w - depth) / 2;
+  const labelY = topLabel ? absY + 16 : absY + (node.h + depth) / 2;
   const label = name
     ? textBlock(
         name,
-        absX + 8,
+        labelX,
         labelY,
-        node.w - (topLabel ? 16 : 28),
+        node.w - (topLabel || !showIcon ? 16 : iconPad + 8),
         node.h - (topLabel ? 8 : 16),
         fontSize,
         fontColor,
         topLabel ? "start" : "middle"
       )
     : "";
+  const parentAttr = item.parentId ? ` data-parent-id="${esc(item.parentId)}"` : "";
 
-  return `<g class="av-node" data-kind="${isNote ? "label" : isGroup ? "container" : "element"}" data-element-id="${esc(node.identifier)}" data-type="${esc(type)}" transform="translate(0,0)">
+  return `<g class="av-node" data-kind="${isNote ? "label" : isGroup ? "container" : "element"}" data-element-id="${esc(node.identifier)}" data-type="${esc(type)}" data-x="${absX}" data-y="${absY}" data-w="${node.w}" data-h="${node.h}"${parentAttr} transform="translate(0,0)">
     ${body}${icon}${label}
   </g>`;
 }
@@ -216,7 +241,7 @@ function iconMarkup(kind: string, x: number, y: number, stroke: string): string 
     course: `<path d="M3 12 L8 4 L13 12" ${s}/>`
   };
   const inner = icons[kind] || icons.function;
-  return `<g class="av-icon" transform="translate(${x},${y}) scale(0.9)">${inner}</g>`;
+  return `<g class="av-icon" transform="translate(${x},${y}) scale(${ICON_SCALE})">${inner}</g>`;
 }
 
 function textBlock(
@@ -229,16 +254,17 @@ function textBlock(
   fill: string,
   anchor: "middle" | "start"
 ): string {
-  const lines = wrap(text, maxW, size).slice(0, Math.max(1, Math.floor(maxH / (size + 2))));
-  const startY =
-    anchor === "start" ? y : y - ((lines.length - 1) * (size + 2)) / 2;
+  const lineHeight = size + 2;
+  const lines = wrap(text, maxW, size).slice(0, Math.max(1, Math.floor(maxH / lineHeight)));
+  const startY = anchor === "middle" ? y - ((lines.length - 1) * lineHeight) / 2 : y;
+  const baseline = anchor === "middle" ? ` dominant-baseline="central"` : "";
   const tspans = lines
     .map((line, i) => {
-      const dy = i === 0 ? 0 : size + 2;
-      return `<tspan x="${anchor === "middle" ? x + maxW / 2 - 4 : x}" dy="${dy}">${esc(line)}</tspan>`;
+      const dy = i === 0 ? 0 : lineHeight;
+      return `<tspan x="${x}" dy="${dy}">${esc(line)}</tspan>`;
     })
     .join("");
-  return `<text x="${anchor === "middle" ? x + maxW / 2 - 4 : x}" y="${startY}" text-anchor="${anchor}" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="${size}" fill="${fill}">${tspans}</text>`;
+  return `<text class="av-label" x="${x}" y="${startY}" text-anchor="${anchor}"${baseline} font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="${size}" fill="${fill}">${tspans}</text>`;
 }
 
 function wrap(text: string, maxW: number, size: number): string[] {
@@ -275,40 +301,54 @@ function renderConnection(
     return "";
   }
   const rel = conn.relationshipRef ? model.relationships.get(conn.relationshipRef) : undefined;
-  const type = rel?.type || "Association";
-  const notation = getRelationshipNotation(type);
+  const rawType = rel?.type || (conn.xsiType !== "Relationship" && conn.xsiType !== "Line" ? conn.xsiType : "");
+  const type = normalizeRelationshipType(rawType || "Association");
+  const notation = getRelationshipNotation(type, {
+    accessType: rel?.accessType,
+    isDirected: rel?.isDirected
+  });
   const stroke = color(conn.style?.lineColor, "#222");
-  const sw = conn.style?.lineWidth || 1.35;
   const dash = dashArray(notation.dash);
-  const points = route(source, target, conn.bendpoints);
+  const points = connectionRoute(boxOf(source), boxOf(target), conn.bendpoints);
   const d = pointsToPath(points);
   const srcMarker = markerUrl(notation.sourceMarker, stroke, "start");
   const tgtMarker = markerUrl(notation.targetMarker, stroke, "end");
-  const label = conn.label || rel?.name || "";
+  const label = conn.label || rel?.name || rel?.modifier || "";
   const mid = points[Math.floor(points.length / 2)];
   const labelSvg = label
-    ? `<text x="${mid.x}" y="${mid.y - 6}" text-anchor="middle" font-size="11" font-family="Segoe UI, Helvetica, Arial, sans-serif" fill="${stroke}">${esc(label)}</text>`
+    ? `<text class="av-label" x="${mid.x}" y="${mid.y - 6}" text-anchor="middle" font-size="11" font-family="Segoe UI, Helvetica, Arial, sans-serif" fill="${stroke}">${esc(label)}</text>`
     : "";
-  return `<g class="av-connection" data-kind="relationship" data-element-id="${esc(conn.identifier)}" data-type="${esc(type)}">
-    <path d="${d}" fill="none" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-start="${srcMarker}" marker-end="${tgtMarker}"/>
+  const start = points[0];
+  const end = points[points.length - 1];
+  return `<g class="av-connection" data-kind="relationship" data-element-id="${esc(conn.identifier)}" data-type="${esc(type)}" data-source="${esc(conn.source)}" data-target="${esc(conn.target)}" data-bendpoints="${esc(formatBendpoints(conn.bendpoints))}">
+    <path class="av-connection-line" d="${d}" fill="none" stroke="${stroke}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-start="${srcMarker}" marker-end="${tgtMarker}"/>
+    <path class="av-connection-hit" d="${d}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="18" pointer-events="stroke"/>
     ${labelSvg}
+    <circle class="av-connection-end" data-end="source" cx="${start.x}" cy="${start.y}" r="12" fill="transparent"/>
+    <circle class="av-connection-end" data-end="target" cx="${end.x}" cy="${end.y}" r="12" fill="transparent"/>
+    ${conn.bendpoints
+      .map(
+        (point, index) =>
+          `<circle class="av-connection-kink" data-index="${index}" cx="${point.x}" cy="${point.y}" r="6" fill="#fff" stroke="${stroke}" stroke-width="2"/>`
+      )
+      .join("")}
   </g>`;
 }
 
-function route(source: AbsNode, target: AbsNode, bendpoints: Point[]): Point[] {
-  const sourceBox = boxOf(source);
-  const targetBox = boxOf(target);
+export function connectionRoute(source: Bounds, target: Bounds, bendpoints: Point[]): Point[] {
   if (!bendpoints.length) {
-    const a = attach(sourceBox, center(targetBox));
-    const b = attach(targetBox, center(sourceBox));
-    return [a, b];
+    return [attach(source, center(target)), attach(target, center(source))];
   }
   const first = bendpoints[0];
   const last = bendpoints[bendpoints.length - 1];
-  return [attach(sourceBox, first), ...bendpoints, attach(targetBox, last)];
+  return [attach(source, first), ...bendpoints, attach(target, last)];
 }
 
-function boxOf(item: AbsNode) {
+function formatBendpoints(points: Point[]): string {
+  return points.map((point) => `${point.x},${point.y}`).join(" ");
+}
+
+function boxOf(item: AbsNode): Bounds {
   return { x: item.absX, y: item.absY, w: item.node.w, h: item.node.h };
 }
 
@@ -316,7 +356,7 @@ function center(box: { x: number; y: number; w: number; h: number }): Point {
   return { x: box.x + box.w / 2, y: box.y + box.h / 2 };
 }
 
-function attach(box: { x: number; y: number; w: number; h: number }, toward: Point): Point {
+function attach(box: Bounds, toward: Point): Point {
   const c = center(box);
   const dx = toward.x - c.x;
   const dy = toward.y - c.y;
@@ -329,7 +369,7 @@ function attach(box: { x: number; y: number; w: number; h: number }, toward: Poi
   return { x: c.x + dx * t, y: c.y + dy * t };
 }
 
-function pointsToPath(points: Point[]): string {
+export function pointsToPath(points: Point[]): string {
   return points
     .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(" ");
@@ -359,20 +399,20 @@ function markerShape(kind: MarkerKind, start: boolean): string {
   const orient = "auto";
   if (kind === "filled-diamond" || kind === "open-diamond") {
     const fill = kind === "filled-diamond" ? "#222" : "white";
-    return `<marker id="${id}" markerWidth="12" markerHeight="12" refX="${start ? 1 : 11}" refY="6" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M1 6 L6 2 L11 6 L6 10 Z" fill="${fill}" stroke="#222" stroke-width="1"/></marker>`;
+    return `<marker id="${id}" markerWidth="16" markerHeight="16" refX="${start ? 2 : 14}" refY="8" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M2 8 L8 2 L14 8 L8 14 Z" fill="${fill}" stroke="#222" stroke-width="2"/></marker>`;
   }
   if (kind === "filled-circle" || kind === "open-circle") {
     const fill = kind === "filled-circle" ? "#222" : "white";
-    return `<marker id="${id}" markerWidth="10" markerHeight="10" refX="${start ? 3 : 7}" refY="5" orient="${orient}" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.2" fill="${fill}" stroke="#222" stroke-width="1"/></marker>`;
+    return `<marker id="${id}" markerWidth="16" markerHeight="16" refX="${start ? 2.5 : 13.5}" refY="8" orient="${orient}" markerUnits="userSpaceOnUse"><circle cx="8" cy="8" r="4.5" fill="${fill}" stroke="#222" stroke-width="2"/></marker>`;
   }
   if (kind === "filled-arrow") {
     return `<marker id="${id}" markerWidth="12" markerHeight="10" refX="${start ? 1 : 11}" refY="5" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M1 1 L11 5 L1 9 Z" fill="#222"/></marker>`;
   }
   if (kind === "open-arrow") {
-    return `<marker id="${id}" markerWidth="12" markerHeight="10" refX="${start ? 1 : 10}" refY="5" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M1 1 L10 5 L1 9" fill="none" stroke="#222" stroke-width="1.3"/></marker>`;
+    return `<marker id="${id}" markerWidth="16" markerHeight="16" refX="${start ? 2 : 13}" refY="8" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M2 3 L13 8 L2 13" fill="none" stroke="#222" stroke-width="2"/></marker>`;
   }
   if (kind === "open-triangle") {
-    return `<marker id="${id}" markerWidth="14" markerHeight="12" refX="${start ? 1 : 13}" refY="6" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M1 1 L13 6 L1 11 Z" fill="white" stroke="#222" stroke-width="1.2"/></marker>`;
+    return `<marker id="${id}" markerWidth="18" markerHeight="16" refX="${start ? 2 : 15}" refY="8" orient="${orient}" markerUnits="userSpaceOnUse"><path d="M2 2 L15 8 L2 14 Z" fill="white" stroke="#222" stroke-width="2"/></marker>`;
   }
   return "";
 }

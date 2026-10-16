@@ -1,10 +1,20 @@
 {
   "name": "archimate-viewer",
   "displayName": "ArchiMate Viewer",
-  "description": "View Open Group ArchiMate Model Exchange files in VS Code, powered by an embeddable bpmn-js-style JavaScript viewer.",
-  "version": "0.1.0",
-  "publisher": "fideocam",
-  "license": "MIT",
+  "description": "View Open Group ArchiMate Model Exchange files in VS Code, with an embeddable JavaScript viewer.",
+  "version": "0.2.0",
+  "publisher": "annala-son",
+  "author": "Annala & Son",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1B333C",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/fideocam/ArchimateViewer#readme",
+  "bugs": {
+    "url": "https://github.com/fideocam/ArchimateViewer/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/fideocam/ArchimateViewer"
@@ -58,6 +68,11 @@
         }
       ]
     },
+    "chatAgents": [
+      {
+        "path": "./ArchiGPT.agent.md"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "archimate.viewer",
@@ -90,7 +105,7 @@
     "watch": "npm run compile:ext -- --watch",
     "test": "tsx --test test/*.test.ts",
     "demo": "npm run compile:lib && npx --yes serve -l 4173 .",
-    "package": "npx --yes @vscode/vsce package --no-dependencies"
+    "package": "node scripts/write-marketplace-readme.js && npx --yes @vscode/vsce package --no-dependencies --readme-path README.marketplace.md"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
