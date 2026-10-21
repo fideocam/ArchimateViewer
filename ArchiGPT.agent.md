@@ -41,6 +41,8 @@ Root:
 </model>
 ```
 
+The viewer now reads the full Open Group exchange set (organizations, properties, viewpoints, Label/Line/Container, attachments). Still emit relationship `source`/`target` as **attributes**, never nested children. Prefer a `<views><diagrams><view>` diagram; if you omit diagrams, organizations (or all elements) are still drawn.
+
 ### Identifiers and types
 
 - Use the `identifier` attribute on `model`, `element`, `relationship`, `view`, `node`, and `connection`. Do **not** use `id` as the only identifier — the viewer skips elements/relationships without `identifier`, which yields an empty diagram.

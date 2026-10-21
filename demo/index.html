@@ -22,6 +22,8 @@
     <strong>ArchiMate Viewer</strong>
     <button id="sample1" type="button">Load claims sample</button>
     <button id="sample2" type="button">Load relationships sample</button>
+    <button id="sample3" type="button">Load full exchange</button>
+    <button id="sample4" type="button">Load organization-only</button>
     <label>Open <input id="file" type="file" accept=".xml,.archimate,text/xml" /></label>
     <label>View <select id="views"></select></label>
     <button id="fit" type="button">Fit</button>
@@ -58,6 +60,8 @@
 
     document.getElementById("sample1").onclick = () => loadSample("../samples/archinsurance-claims.xml");
     document.getElementById("sample2").onclick = () => loadSample("../samples/relationships.xml");
+    document.getElementById("sample3").onclick = () => loadSample("../samples/full-exchange.xml");
+    document.getElementById("sample4").onclick = () => loadSample("../samples/organization-only.xml");
     document.getElementById("fit").onclick = () => viewer.get("canvas").zoom("fit-viewport");
     views.onchange = () => viewer.openView(views.value).then(() => viewer.get("canvas").zoom("fit-viewport"));
     document.getElementById("file").onchange = async (event) => {

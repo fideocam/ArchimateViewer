@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       identifier="id-model-all-elements">
+  <name>All ArchiMate 3 element types</name>
+  <elements>
+    <element identifier="id-e-BusinessActor" xsi:type="BusinessActor"><name>BusinessActor</name></element>
+    <element identifier="id-e-BusinessRole" xsi:type="BusinessRole"><name>BusinessRole</name></element>
+    <element identifier="id-e-BusinessCollaboration" xsi:type="BusinessCollaboration"><name>BusinessCollaboration</name></element>
+    <element identifier="id-e-BusinessInterface" xsi:type="BusinessInterface"><name>BusinessInterface</name></element>
+    <element identifier="id-e-BusinessProcess" xsi:type="BusinessProcess"><name>BusinessProcess</name></element>
+    <element identifier="id-e-BusinessFunction" xsi:type="BusinessFunction"><name>BusinessFunction</name></element>
+    <element identifier="id-e-BusinessInteraction" xsi:type="BusinessInteraction"><name>BusinessInteraction</name></element>
+    <element identifier="id-e-BusinessEvent" xsi:type="BusinessEvent"><name>BusinessEvent</name></element>
+    <element identifier="id-e-BusinessService" xsi:type="BusinessService"><name>BusinessService</name></element>
+    <element identifier="id-e-BusinessObject" xsi:type="BusinessObject"><name>BusinessObject</name></element>
+    <element identifier="id-e-Contract" xsi:type="Contract"><name>Contract</name></element>
+    <element identifier="id-e-Representation" xsi:type="Representation"><name>Representation</name></element>
+    <element identifier="id-e-Product" xsi:type="Product"><name>Product</name></element>
+    <element identifier="id-e-ApplicationComponent" xsi:type="ApplicationComponent"><name>ApplicationComponent</name></element>
+    <element identifier="id-e-ApplicationCollaboration" xsi:type="ApplicationCollaboration"><name>ApplicationCollaboration</name></element>
+    <element identifier="id-e-ApplicationInterface" xsi:type="ApplicationInterface"><name>ApplicationInterface</name></element>
+    <element identifier="id-e-ApplicationFunction" xsi:type="ApplicationFunction"><name>ApplicationFunction</name></element>
+    <element identifier="id-e-ApplicationInteraction" xsi:type="ApplicationInteraction"><name>ApplicationInteraction</name></element>
+    <element identifier="id-e-ApplicationProcess" xsi:type="ApplicationProcess"><name>ApplicationProcess</name></element>
+    <element identifier="id-e-ApplicationEvent" xsi:type="ApplicationEvent"><name>ApplicationEvent</name></element>
+    <element identifier="id-e-ApplicationService" xsi:type="ApplicationService"><name>ApplicationService</name></element>
+    <element identifier="id-e-DataObject" xsi:type="DataObject"><name>DataObject</name></element>
+    <element identifier="id-e-Node" xsi:type="Node"><name>Node</name></element>
+    <element identifier="id-e-Device" xsi:type="Device"><name>Device</name></element>
+    <element identifier="id-e-SystemSoftware" xsi:type="SystemSoftware"><name>SystemSoftware</name></element>
+    <element identifier="id-e-TechnologyCollaboration" xsi:type="TechnologyCollaboration"><name>TechnologyCollaboration</name></element>
+    <element identifier="id-e-TechnologyInterface" xsi:type="TechnologyInterface"><name>TechnologyInterface</name></element>
+    <element identifier="id-e-Path" xsi:type="Path"><name>Path</name></element>
+    <element identifier="id-e-CommunicationNetwork" xsi:type="CommunicationNetwork"><name>CommunicationNetwork</name></element>
+    <element identifier="id-e-TechnologyFunction" xsi:type="TechnologyFunction"><name>TechnologyFunction</name></element>
+    <element identifier="id-e-TechnologyProcess" xsi:type="TechnologyProcess"><name>TechnologyProcess</name></element>
+    <element identifier="id-e-TechnologyInteraction" xsi:type="TechnologyInteraction"><name>TechnologyInteraction</name></element>
+    <element identifier="id-e-TechnologyEvent" xsi:type="TechnologyEvent"><name>TechnologyEvent</name></element>
+    <element identifier="id-e-TechnologyService" xsi:type="TechnologyService"><name>TechnologyService</name></element>
+    <element identifier="id-e-Artifact" xsi:type="Artifact"><name>Artifact</name></element>
+    <element identifier="id-e-Equipment" xsi:type="Equipment"><name>Equipment</name></element>
+    <element identifier="id-e-Facility" xsi:type="Facility"><name>Facility</name></element>
+    <element identifier="id-e-DistributionNetwork" xsi:type="DistributionNetwork"><name>DistributionNetwork</name></element>
+    <element identifier="id-e-Material" xsi:type="Material"><name>Material</name></element>
+    <element identifier="id-e-Stakeholder" xsi:type="Stakeholder"><name>Stakeholder</name></element>
+    <element identifier="id-e-Driver" xsi:type="Driver"><name>Driver</name></element>
+    <element identifier="id-e-Assessment" xsi:type="Assessment"><name>Assessment</name></element>
+    <element identifier="id-e-Goal" xsi:type="Goal"><name>Goal</name></element>
+    <element identifier="id-e-Outcome" xsi:type="Outcome"><name>Outcome</name></element>
+    <element identifier="id-e-Principle" xsi:type="Principle"><name>Principle</name></element>
+    <element identifier="id-e-Requirement" xsi:type="Requirement"><name>Requirement</name></element>
+    <element identifier="id-e-Constraint" xsi:type="Constraint"><name>Constraint</name></element>
+    <element identifier="id-e-Meaning" xsi:type="Meaning"><name>Meaning</name></element>
+    <element identifier="id-e-Value" xsi:type="Value"><name>Value</name></element>
+    <element identifier="id-e-Resource" xsi:type="Resource"><name>Resource</name></element>
+    <element identifier="id-e-Capability" xsi:type="Capability"><name>Capability</name></element>
+    <element identifier="id-e-CourseOfAction" xsi:type="CourseOfAction"><name>CourseOfAction</name></element>
+    <element identifier="id-e-WorkPackage" xsi:type="WorkPackage"><name>WorkPackage</name></element>
+    <element identifier="id-e-Deliverable" xsi:type="Deliverable"><name>Deliverable</name></element>
+    <element identifier="id-e-ImplementationEvent" xsi:type="ImplementationEvent"><name>ImplementationEvent</name></element>
+    <element identifier="id-e-Plateau" xsi:type="Plateau"><name>Plateau</name></element>
+    <element identifier="id-e-Gap" xsi:type="Gap"><name>Gap</name></element>
+    <element identifier="id-e-Grouping" xsi:type="Grouping"><name>Grouping</name></element>
+    <element identifier="id-e-Location" xsi:type="Location"><name>Location</name></element>
+    <element identifier="id-e-AndJunction" xsi:type="AndJunction"><name>AndJunction</name></element>
+    <element identifier="id-e-OrJunction" xsi:type="OrJunction"><name>OrJunction</name></element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r-Composition" source="id-e-Grouping" target="id-e-BusinessActor" xsi:type="Composition"/>
+    <relationship identifier="id-r-Aggregation" source="id-e-Location" target="id-e-BusinessRole" xsi:type="Aggregation"/>
+    <relationship identifier="id-r-Assignment" source="id-e-BusinessActor" target="id-e-BusinessProcess" xsi:type="Assignment"/>
+    <relationship identifier="id-r-Realization" source="id-e-ApplicationComponent" target="id-e-ApplicationService" xsi:type="Realization"/>
+    <relationship identifier="id-r-Serving" source="id-e-ApplicationService" target="id-e-BusinessProcess" xsi:type="Serving"/>
+    <relationship identifier="id-r-Access" source="id-e-BusinessProcess" target="id-e-BusinessObject" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r-Influence" source="id-e-Goal" target="id-e-Requirement" xsi:type="Influence" modifier="+"/>
+    <relationship identifier="id-r-Triggering" source="id-e-BusinessEvent" target="id-e-BusinessProcess" xsi:type="Triggering"/>
+    <relationship identifier="id-r-Flow" source="id-e-BusinessFunction" target="id-e-BusinessInteraction" xsi:type="Flow"/>
+    <relationship identifier="id-r-Specialization" source="id-e-BusinessRole" target="id-e-BusinessActor" xsi:type="Specialization"/>
+    <relationship identifier="id-r-Association" source="id-e-Stakeholder" target="id-e-Driver" xsi:type="Association"/>
+  </relationships>
+  <views>
+    <diagrams>
+      <view identifier="id-view-all-elements">
+        <name>All elements</name>
+        <node identifier="id-n-BusinessActor" xsi:type="Element" elementRef="id-e-BusinessActor" x="40" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessRole" xsi:type="Element" elementRef="id-e-BusinessRole" x="210" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessCollaboration" xsi:type="Element" elementRef="id-e-BusinessCollaboration" x="380" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessInterface" xsi:type="Element" elementRef="id-e-BusinessInterface" x="550" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessProcess" xsi:type="Element" elementRef="id-e-BusinessProcess" x="720" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessFunction" xsi:type="Element" elementRef="id-e-BusinessFunction" x="890" y="40" w="150" h="55"/>
+        <node identifier="id-n-BusinessInteraction" xsi:type="Element" elementRef="id-e-BusinessInteraction" x="40" y="115" w="150" h="55"/>
+        <node identifier="id-n-BusinessEvent" xsi:type="Element" elementRef="id-e-BusinessEvent" x="210" y="115" w="150" h="55"/>
+        <node identifier="id-n-BusinessService" xsi:type="Element" elementRef="id-e-BusinessService" x="380" y="115" w="150" h="55"/>
+        <node identifier="id-n-BusinessObject" xsi:type="Element" elementRef="id-e-BusinessObject" x="550" y="115" w="150" h="55"/>
+        <node identifier="id-n-Contract" xsi:type="Element" elementRef="id-e-Contract" x="720" y="115" w="150" h="55"/>
+        <node identifier="id-n-Representation" xsi:type="Element" elementRef="id-e-Representation" x="890" y="115" w="150" h="55"/>
+        <node identifier="id-n-Product" xsi:type="Element" elementRef="id-e-Product" x="40" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationComponent" xsi:type="Element" elementRef="id-e-ApplicationComponent" x="210" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationCollaboration" xsi:type="Element" elementRef="id-e-ApplicationCollaboration" x="380" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationInterface" xsi:type="Element" elementRef="id-e-ApplicationInterface" x="550" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationFunction" xsi:type="Element" elementRef="id-e-ApplicationFunction" x="720" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationInteraction" xsi:type="Element" elementRef="id-e-ApplicationInteraction" x="890" y="190" w="150" h="55"/>
+        <node identifier="id-n-ApplicationProcess" xsi:type="Element" elementRef="id-e-ApplicationProcess" x="40" y="265" w="150" h="55"/>
+        <node identifier="id-n-ApplicationEvent" xsi:type="Element" elementRef="id-e-ApplicationEvent" x="210" y="265" w="150" h="55"/>
+        <node identifier="id-n-ApplicationService" xsi:type="Element" elementRef="id-e-ApplicationService" x="380" y="265" w="150" h="55"/>
+        <node identifier="id-n-DataObject" xsi:type="Element" elementRef="id-e-DataObject" x="550" y="265" w="150" h="55"/>
+        <node identifier="id-n-Node" xsi:type="Element" elementRef="id-e-Node" x="720" y="265" w="150" h="55"/>
+        <node identifier="id-n-Device" xsi:type="Element" elementRef="id-e-Device" x="890" y="265" w="150" h="55"/>
+        <node identifier="id-n-SystemSoftware" xsi:type="Element" elementRef="id-e-SystemSoftware" x="40" y="340" w="150" h="55"/>
+        <node identifier="id-n-TechnologyCollaboration" xsi:type="Element" elementRef="id-e-TechnologyCollaboration" x="210" y="340" w="150" h="55"/>
+        <node identifier="id-n-TechnologyInterface" xsi:type="Element" elementRef="id-e-TechnologyInterface" x="380" y="340" w="150" h="55"/>
+        <node identifier="id-n-Path" xsi:type="Element" elementRef="id-e-Path" x="550" y="340" w="150" h="55"/>
+        <node identifier="id-n-CommunicationNetwork" xsi:type="Element" elementRef="id-e-CommunicationNetwork" x="720" y="340" w="150" h="55"/>
+        <node identifier="id-n-TechnologyFunction" xsi:type="Element" elementRef="id-e-TechnologyFunction" x="890" y="340" w="150" h="55"/>
+        <node identifier="id-n-TechnologyProcess" xsi:type="Element" elementRef="id-e-TechnologyProcess" x="40" y="415" w="150" h="55"/>
+        <node identifier="id-n-TechnologyInteraction" xsi:type="Element" elementRef="id-e-TechnologyInteraction" x="210" y="415" w="150" h="55"/>
+        <node identifier="id-n-TechnologyEvent" xsi:type="Element" elementRef="id-e-TechnologyEvent" x="380" y="415" w="150" h="55"/>
+        <node identifier="id-n-TechnologyService" xsi:type="Element" elementRef="id-e-TechnologyService" x="550" y="415" w="150" h="55"/>
+        <node identifier="id-n-Artifact" xsi:type="Element" elementRef="id-e-Artifact" x="720" y="415" w="150" h="55"/>
+        <node identifier="id-n-Equipment" xsi:type="Element" elementRef="id-e-Equipment" x="890" y="415" w="150" h="55"/>
+        <node identifier="id-n-Facility" xsi:type="Element" elementRef="id-e-Facility" x="40" y="490" w="150" h="55"/>
+        <node identifier="id-n-DistributionNetwork" xsi:type="Element" elementRef="id-e-DistributionNetwork" x="210" y="490" w="150" h="55"/>
+        <node identifier="id-n-Material" xsi:type="Element" elementRef="id-e-Material" x="380" y="490" w="150" h="55"/>
+        <node identifier="id-n-Stakeholder" xsi:type="Element" elementRef="id-e-Stakeholder" x="550" y="490" w="150" h="55"/>
+        <node identifier="id-n-Driver" xsi:type="Element" elementRef="id-e-Driver" x="720" y="490" w="150" h="55"/>
+        <node identifier="id-n-Assessment" xsi:type="Element" elementRef="id-e-Assessment" x="890" y="490" w="150" h="55"/>
+        <node identifier="id-n-Goal" xsi:type="Element" elementRef="id-e-Goal" x="40" y="565" w="150" h="55"/>
+        <node identifier="id-n-Outcome" xsi:type="Element" elementRef="id-e-Outcome" x="210" y="565" w="150" h="55"/>
+        <node identifier="id-n-Principle" xsi:type="Element" elementRef="id-e-Principle" x="380" y="565" w="150" h="55"/>
+        <node identifier="id-n-Requirement" xsi:type="Element" elementRef="id-e-Requirement" x="550" y="565" w="150" h="55"/>
+        <node identifier="id-n-Constraint" xsi:type="Element" elementRef="id-e-Constraint" x="720" y="565" w="150" h="55"/>
+        <node identifier="id-n-Meaning" xsi:type="Element" elementRef="id-e-Meaning" x="890" y="565" w="150" h="55"/>
+        <node identifier="id-n-Value" xsi:type="Element" elementRef="id-e-Value" x="40" y="640" w="150" h="55"/>
+        <node identifier="id-n-Resource" xsi:type="Element" elementRef="id-e-Resource" x="210" y="640" w="150" h="55"/>
+        <node identifier="id-n-Capability" xsi:type="Element" elementRef="id-e-Capability" x="380" y="640" w="150" h="55"/>
+        <node identifier="id-n-CourseOfAction" xsi:type="Element" elementRef="id-e-CourseOfAction" x="550" y="640" w="150" h="55"/>
+        <node identifier="id-n-WorkPackage" xsi:type="Element" elementRef="id-e-WorkPackage" x="720" y="640" w="150" h="55"/>
+        <node identifier="id-n-Deliverable" xsi:type="Element" elementRef="id-e-Deliverable" x="890" y="640" w="150" h="55"/>
+        <node identifier="id-n-ImplementationEvent" xsi:type="Element" elementRef="id-e-ImplementationEvent" x="40" y="715" w="150" h="55"/>
+        <node identifier="id-n-Plateau" xsi:type="Element" elementRef="id-e-Plateau" x="210" y="715" w="150" h="55"/>
+        <node identifier="id-n-Gap" xsi:type="Element" elementRef="id-e-Gap" x="380" y="715" w="150" h="55"/>
+        <node identifier="id-n-Grouping" xsi:type="Element" elementRef="id-e-Grouping" x="550" y="715" w="150" h="55"/>
+        <node identifier="id-n-Location" xsi:type="Element" elementRef="id-e-Location" x="720" y="715" w="150" h="55"/>
+        <node identifier="id-n-AndJunction" xsi:type="Element" elementRef="id-e-AndJunction" x="890" y="715" w="150" h="55"/>
+        <node identifier="id-n-OrJunction" xsi:type="Element" elementRef="id-e-OrJunction" x="40" y="790" w="150" h="55"/>
+        <connection identifier="id-c-Composition" xsi:type="Relationship" relationshipRef="id-r-Composition" source="id-n-Grouping" target="id-n-BusinessActor"/>
+        <connection identifier="id-c-Aggregation" xsi:type="Relationship" relationshipRef="id-r-Aggregation" source="id-n-Location" target="id-n-BusinessRole"/>
+        <connection identifier="id-c-Assignment" xsi:type="Relationship" relationshipRef="id-r-Assignment" source="id-n-BusinessActor" target="id-n-BusinessProcess"/>
+        <connection identifier="id-c-Realization" xsi:type="Relationship" relationshipRef="id-r-Realization" source="id-n-ApplicationComponent" target="id-n-ApplicationService"/>
+        <connection identifier="id-c-Serving" xsi:type="Relationship" relationshipRef="id-r-Serving" source="id-n-ApplicationService" target="id-n-BusinessProcess"/>
+        <connection identifier="id-c-Access" xsi:type="Relationship" relationshipRef="id-r-Access" source="id-n-BusinessProcess" target="id-n-BusinessObject"/>
+        <connection identifier="id-c-Influence" xsi:type="Relationship" relationshipRef="id-r-Influence" source="id-n-Goal" target="id-n-Requirement"/>
+        <connection identifier="id-c-Triggering" xsi:type="Relationship" relationshipRef="id-r-Triggering" source="id-n-BusinessEvent" target="id-n-BusinessProcess"/>
+        <connection identifier="id-c-Flow" xsi:type="Relationship" relationshipRef="id-r-Flow" source="id-n-BusinessFunction" target="id-n-BusinessInteraction"/>
+        <connection identifier="id-c-Specialization" xsi:type="Relationship" relationshipRef="id-r-Specialization" source="id-n-BusinessRole" target="id-n-BusinessActor"/>
+        <connection identifier="id-c-Association" xsi:type="Relationship" relationshipRef="id-r-Association" source="id-n-Stakeholder" target="id-n-Driver"/>
+      </view>
+    </diagrams>
+  </views>
+</model>
