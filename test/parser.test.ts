@@ -138,6 +138,42 @@ describe("parseModel", () => {
     assert.ok(model.views[0].nodes.some((node) => node.xsiType === "Container" && !node.elementRef));
     assert.equal(model.elements.get("id-left")?.type, "BusinessActor");
     assert.equal(model.relationships.get("id-serve-rel")?.type, "Serving");
+    assert.equal(model.relationships.get("id-serve-rel")?.source, "id-svc");
+    assert.equal(model.relationships.get("id-serve-rel")?.target, "id-right");
     assert.ok(model.views[0].connections.length >= 11);
+  });
+
+  it("requires relationship source and target as attributes, not nested children", () => {
+    assert.match(archigpt, /<relationship[^>]*\ssource="/);
+    assert.match(archigpt, /<relationship[^>]*\starget="/);
+    assert.doesNotMatch(archigpt, /<relationship[^>]*>\s*<source[\s>]/);
+    assert.doesNotMatch(archigpt, /<relationship[^>]*>\s*<target[\s>]/);
+
+    const nested = `<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="m">
+  <name>Nested ends</name>
+  <elements>
+    <element identifier="id-a" xsi:type="BusinessActor"><name>A</name></element>
+    <element identifier="id-b" xsi:type="BusinessProcess"><name>B</name></element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r-nested" xsi:type="Serving">
+      <source>id-a</source>
+      <target>id-b</target>
+    </relationship>
+  </relationships>
+  <views>
+    <diagrams>
+      <view identifier="v1">
+        <name>One</name>
+        <node identifier="n-a" xsi:type="Element" elementRef="id-a" x="10" y="10" w="80" h="40"/>
+        <node identifier="n-b" xsi:type="Element" elementRef="id-b" x="120" y="10" w="80" h="40"/>
+      </view>
+    </diagrams>
+  </views>
+</model>`;
+    const model = parseModel(nested);
+    assert.equal(model.relationships.has("id-r-nested"), false);
+    assert.ok(model.warnings.some((w) => /source\/target/i.test(w)));
   });
 });
