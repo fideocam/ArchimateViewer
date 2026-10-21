@@ -41,6 +41,8 @@ Root:
 </model>
 ```
 
+The viewer now reads the full Open Group exchange set (organizations, properties, viewpoints, Label/Line/Container, attachments). Still emit relationship `source`/`target` as **attributes**, never nested children. Prefer a `<views><diagrams><view>` diagram; if you omit diagrams, organizations (or all elements) are still drawn.
+
 ### Identifiers and types
 
 - Use the `identifier` attribute on `model`, `element`, `relationship`, `view`, `node`, and `connection`. Do **not** use `id` as the only identifier — the viewer skips elements/relationships without `identifier`, which yields an empty diagram.
@@ -94,13 +96,40 @@ Wrong:
 </node>
 ```
 
-Right: two sibling nodes and `<relationship xsi:type="Composition"/>` + `<connection>` between their node ids.
+Right: two sibling nodes, a relationship with **source/target attributes**, and a `<connection>` between their node ids:
+
+```xml
+<relationship identifier="id-r-comp" source="id-app" target="id-fn" xsi:type="Composition"/>
+```
 
 A `<node xsi:type="Container">` without `elementRef` may wrap nodes as a **visual** layer frame (Business / Application / Technology). That is not a model nesting.
 
+### Relationship source and target MUST be attributes
+
+Always emit `source` and `target` as **attributes on the `<relationship>` element**. The viewer reads `attr(el, "source")` and `attr(el, "target")` only — nested children are skipped and the relationship is dropped.
+
+Required:
+
+```xml
+<relationship identifier="id-r-serve" source="id-svc" target="id-process" xsi:type="Serving"/>
+```
+
+Forbidden (never generate this):
+
+```xml
+<relationship identifier="id-r-serve" xsi:type="Serving">
+  <source>id-svc</source>
+  <target>id-process</target>
+</relationship>
+```
+
+Same rule for `<connection>`: `source` and `target` are attributes (node identifiers), never nested `<source>`/`<target>` children.
+
+`source` / `target` on `<relationship>` are **element** identifiers. `source` / `target` on `<connection>` are **node** identifiers. `relationshipRef` on the connection points at the relationship identifier.
+
 ### Relationship types (all drawn as arrows)
 
-On `<relationship xsi:type="…">` use these names (not `*Relationship` suffixes, not `UsedBy`, not `Connection`):
+On `<relationship identifier="…" source="…" target="…" xsi:type="…"/>` use these names (not `*Relationship` suffixes, not `UsedBy`, not `Connection`):
 
 | xsi:type | Notes |
 | --- | --- |
@@ -115,8 +144,6 @@ On `<relationship xsi:type="…">` use these names (not `*Relationship` suffixes
 | Specialization | |
 | Composition | |
 | Aggregation | |
-
-`source` / `target` on `<relationship>` are **element** identifiers. `source` / `target` on `<connection>` are **node** identifiers. `relationshipRef` on the connection points at the relationship identifier.
 
 ### Element types
 

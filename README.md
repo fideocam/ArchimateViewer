@@ -26,7 +26,7 @@ Open this folder in VS Code / Cursor and press **F5**. A new Extension Developme
 The F5 sample workspace already sets that association.
 <!-- /marketplace:omit -->
 
-The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After F5 or installing the VSIX, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), and `identifier`/`xsi:type` on elements. Example output: `samples/archigpt-agent.xml`.
+The extension also ships **ArchiGPT**, a Copilot Chat custom agent (`ArchiGPT.agent.md`) registered with `contributes.chatAgents`. After F5 or installing the VSIX, pick **ArchiGPT** from the chat agents dropdown. It writes Open Group exchange XML this viewer can parse: `view`/`diagram` by tag (no `xsi:type="Diagram"` required), sibling `<node>` boxes with relationship `<connection>` arrows (not nested-in-box layout), `identifier`/`xsi:type` on elements, and `<relationship source="…" target="…"/>` as attributes (never nested `<source>`/`<target>` children). Example output: `samples/archigpt-agent.xml`.
 
 Wheel to zoom, drag the canvas to pan, use the toolbar to fit or switch views.
 
@@ -80,9 +80,11 @@ Then open http://localhost:4173/demo/ — load a sample, or open/drop an `.xml` 
 
 ## ArchiMate coverage
 
-Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`), including elements, relationships, diagram views, visual bounds, styles, and bendpoints. ArchiMate 2.x `label` text is also read. Nested model elements inside another element box are drawn as **separate boxes with relationship arrows** (not both nesting and an arrow). Visual grouping containers (layer frames without an `elementRef`) stay as frames.
+Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`): every ArchiMate 3 element type, every relationship type (`source`/`target` **attributes**), diagram `view`/`node`/`connection`/`Label`/`Container`/`Line`, organizations, properties, property definitions, viewpoints, styles, attachments, bendpoints, and model metadata. `xsi:type="Diagram"` is not required. A file with no diagrams is still drawn from its organization tree (or from all elements and relationships). Nested model elements inside another element box are drawn as **separate boxes with relationship arrows** (not both nesting and an arrow). Visual grouping containers (layer frames without an `elementRef`) stay as frames.
 
 **Elements:** Business, Application, Technology, Physical, Motivation, Strategy, Implementation & Migration, plus Grouping, Location, and Junctions. Shapes follow ArchiMate aspect conventions (square = active structure, rounded = behavior, folded corner = passive structure, ellipse/bevel = motivation, 3D box = nodes/devices). Layer colours match the usual Archi palette.
+
+Fixtures: `samples/full-exchange.xml` (diagram constructs), `samples/organization-only.xml` (no diagrams), `samples/all-element-types.xml` (every 3.0 element type).
 
 **Relationships (full exchange set):**
 
