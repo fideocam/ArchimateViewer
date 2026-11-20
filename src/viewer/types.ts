@@ -24,11 +24,47 @@ export interface Point {
   y: number;
 }
 
+export interface ArchiMateProperty {
+  propertyDefinitionRef: string;
+  value: string;
+}
+
+export interface PropertyDefinition {
+  identifier: string;
+  name: string;
+  type: string;
+  documentation?: string;
+}
+
+export interface OrganizationItem {
+  identifier?: string;
+  identifierRef?: string;
+  label: string;
+  documentation?: string;
+  items: OrganizationItem[];
+}
+
+export interface ViewpointDefinition {
+  identifier: string;
+  name: string;
+  documentation?: string;
+  purpose?: string;
+  content?: string;
+  allowedElementTypes: string[];
+  allowedRelationshipTypes: string[];
+}
+
+export interface MetadataEntry {
+  name: string;
+  text: string;
+}
+
 export interface ArchiMateElement {
   identifier: string;
   type: string;
   name: string;
   documentation?: string;
+  properties?: ArchiMateProperty[];
 }
 
 export interface ArchiMateRelationship {
@@ -41,6 +77,7 @@ export interface ArchiMateRelationship {
   modifier?: string;
   isDirected?: boolean;
   documentation?: string;
+  properties?: ArchiMateProperty[];
 }
 
 export interface RelationshipNotationOptions {
@@ -57,7 +94,11 @@ export interface DiagramNode {
   h: number;
   elementRef?: string;
   viewRef?: string;
+  conceptRef?: string;
+  xpathPart?: string;
   label?: string;
+  documentation?: string;
+  properties?: ArchiMateProperty[];
   style?: VisualStyle;
   children: DiagramNode[];
 }
@@ -69,14 +110,21 @@ export interface DiagramConnection {
   target: string;
   relationshipRef?: string;
   label?: string;
+  documentation?: string;
+  properties?: ArchiMateProperty[];
   style?: VisualStyle;
   bendpoints: Point[];
+  sourceAttachment?: Point;
+  targetAttachment?: Point;
 }
 
 export interface DiagramView {
   identifier: string;
   name: string;
   documentation?: string;
+  viewpoint?: string;
+  viewpointRef?: string;
+  properties?: ArchiMateProperty[];
   viewRefs: string[];
   nodes: DiagramNode[];
   connections: DiagramConnection[];
@@ -86,6 +134,12 @@ export interface ArchiMateModel {
   identifier: string;
   name: string;
   documentation?: string;
+  version?: string;
+  properties: ArchiMateProperty[];
+  propertyDefinitions: Map<string, PropertyDefinition>;
+  organizations: OrganizationItem[];
+  viewpoints: ViewpointDefinition[];
+  metadata: MetadataEntry[];
   elements: Map<string, ArchiMateElement>;
   relationships: Map<string, ArchiMateRelationship>;
   views: DiagramView[];

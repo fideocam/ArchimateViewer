@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dc="http://purl.org/dc/elements/1.1/"
+       identifier="id-model-full-exchange"
+       version="3.1">
+  <name xml:lang="en">Full exchange</name>
+  <documentation xml:lang="en">Covers Open Group exchange constructs the viewer used to drop.</documentation>
+  <properties>
+    <property propertyDefinitionRef="prop-status">
+      <value>draft</value>
+    </property>
+  </properties>
+  <metadata>
+    <schemaInfo>
+      <schema>Dublin Core</schema>
+      <schemaversion>1.1</schemaversion>
+      <dc:title>Full exchange fixture</dc:title>
+    </schemaInfo>
+  </metadata>
+  <elements>
+    <element identifier="id-actor" xsi:type="BusinessActor">
+      <name>Claims Actor</name>
+      <documentation>Owns the claim.</documentation>
+      <properties>
+        <property propertyDefinitionRef="prop-owner">
+          <value>Claims</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-role" xsi:type="BusinessRole"><name>Clerk</name></element>
+    <element identifier="id-proc" xsi:type="BusinessProcess"><name>Handle Claim</name></element>
+    <element identifier="id-obj" xsi:type="BusinessObject"><name>Claim File</name></element>
+    <element identifier="id-svc" xsi:type="ApplicationService"><name>Claim Service</name></element>
+    <element identifier="id-comp" xsi:type="ApplicationComponent"><name>Claims App</name></element>
+    <element identifier="id-node" xsi:type="Node"><name>App Server</name></element>
+    <element identifier="id-goal" xsi:type="Goal"><name>Settle Fast</name></element>
+    <element identifier="id-group" xsi:type="Grouping"><name>Claims Group</name></element>
+    <element identifier="id-and" xsi:type="AndJunction"><name></name></element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r-asg" source="id-actor" target="id-proc" xsi:type="Assignment"/>
+    <relationship identifier="id-r-acc" source="id-proc" target="id-obj" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r-srv" source="id-svc" target="id-proc" xsi:type="Serving"/>
+    <relationship identifier="id-r-real" source="id-comp" target="id-svc" xsi:type="Realization"/>
+    <relationship identifier="id-r-comp" source="id-group" target="id-actor" xsi:type="Composition"/>
+    <relationship identifier="id-r-agg" source="id-group" target="id-role" xsi:type="Aggregation"/>
+    <relationship identifier="id-r-flow" source="id-proc" target="id-proc" xsi:type="Flow"/>
+    <relationship identifier="id-r-trig" source="id-and" target="id-proc" xsi:type="Triggering"/>
+    <relationship identifier="id-r-spec" source="id-role" target="id-actor" xsi:type="Specialization"/>
+    <relationship identifier="id-r-infl" source="id-goal" target="id-proc" xsi:type="Influence" modifier="+"/>
+    <relationship identifier="id-r-assoc" source="id-node" target="id-comp" xsi:type="Association"/>
+    <relationship identifier="id-r-assoc-line" source="id-goal" target="id-r-asg" xsi:type="Association"/>
+  </relationships>
+  <organizations>
+    <item identifier="id-org-root">
+      <label>Folders</label>
+      <item identifier="id-org-business">
+        <label>Business</label>
+        <item identifierRef="id-actor"/>
+        <item identifierRef="id-proc"/>
+      </item>
+    </item>
+  </organizations>
+  <propertyDefinitions>
+    <propertyDefinition identifier="prop-owner" type="string">
+      <name>Owner</name>
+    </propertyDefinition>
+    <propertyDefinition identifier="prop-status" type="string">
+      <name>Status</name>
+    </propertyDefinition>
+  </propertyDefinitions>
+  <views>
+    <viewpoints>
+      <viewpoint identifier="id-vp-layered">
+        <name>Layered catalog</name>
+        <documentation>Custom layered viewpoint.</documentation>
+        <viewpointPurpose>Designing Informing</viewpointPurpose>
+        <viewpointContent>Coherence</viewpointContent>
+        <allowedElementType type="BusinessActor"/>
+        <allowedElementType type="BusinessProcess"/>
+        <allowedRelationshipType type="Assignment"/>
+      </viewpoint>
+    </viewpoints>
+    <diagrams>
+      <view identifier="id-view-full" viewpoint="Layered" viewpointRef="id-vp-layered">
+        <name>Full diagram</name>
+        <properties>
+          <property propertyDefinitionRef="prop-status">
+            <value>shown</value>
+          </property>
+        </properties>
+        <node identifier="n-actor" xsi:type="Element" elementRef="id-actor" x="40" y="40" w="140" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181"/>
+            <lineColor r="92" g="92" b="32"/>
+            <font name="Segoe UI" size="12" style="bold">
+              <color r="20" g="20" b="20"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="n-proc" xsi:type="Element" elementRef="id-proc" x="260" y="40" w="160" h="55"/>
+        <node identifier="n-obj" xsi:type="Element" elementRef="id-obj" x="500" y="40" w="140" h="55"/>
+        <node identifier="n-goal" xsi:type="Element" elementRef="id-goal" x="40" y="160" w="140" h="60"/>
+        <node identifier="n-label" xsi:type="Label" conceptRef="id-actor" xpathPart="name" x="40" y="250" w="180" h="40"/>
+        <node identifier="n-note" xsi:type="Label" x="260" y="250" w="180" h="50">
+          <label>Freeform note</label>
+        </node>
+        <node identifier="n-frame" xsi:type="Container" x="20" y="20" w="640" h="300">
+          <label>Layer frame</label>
+        </node>
+        <connection identifier="c-asg" xsi:type="Relationship" relationshipRef="id-r-asg" source="n-actor" target="n-proc">
+          <sourceAttachment x="180" y="70"/>
+          <targetAttachment x="260" y="67"/>
+        </connection>
+        <connection identifier="c-acc" xsi:type="Relationship" relationshipRef="id-r-acc" source="n-proc" target="n-obj"/>
+        <connection identifier="c-to-rel" xsi:type="Relationship" relationshipRef="id-r-assoc-line" source="n-goal" target="c-asg"/>
+        <connection identifier="c-line" xsi:type="Line">
+          <style lineWidth="3">
+            <lineColor r="120" g="40" b="40"/>
+          </style>
+          <sourceAttachment x="500" y="160"/>
+          <bendpoint x="560" y="200"/>
+          <targetAttachment x="620" y="160"/>
+        </connection>
+      </view>
+      <view identifier="id-view-nested-boxes">
+        <name>Nested element boxes</name>
+        <node identifier="n-group" xsi:type="Element" elementRef="id-group" x="20" y="20" w="400" h="180">
+          <node identifier="n-nested-actor" xsi:type="Element" elementRef="id-actor" x="20" y="40" w="140" h="55"/>
+          <node identifier="n-nested-role" xsi:type="Element" elementRef="id-role" x="200" y="40" w="140" h="55"/>
+        </node>
+        <connection identifier="c-nest" xsi:type="NestingRelationship" relationshipRef="id-r-comp" source="n-group" target="n-nested-actor"/>
+      </view>
+    </diagrams>
+  </views>
+</model>

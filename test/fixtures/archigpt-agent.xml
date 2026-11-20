@@ -13,6 +13,7 @@
     <element identifier="id-role" xsi:type="BusinessRole"><name>Role</name></element>
   </elements>
   <relationships>
+    <!-- ArchiGPT contract: source and target are attributes, never nested children. -->
     <relationship identifier="id-comp-rel" source="id-comp" target="id-svc" xsi:type="Composition"/>
     <relationship identifier="id-agg-rel" source="id-comp" target="id-obj" xsi:type="Aggregation"/>
     <relationship identifier="id-asg-rel" source="id-left" target="id-right" xsi:type="Assignment"/>

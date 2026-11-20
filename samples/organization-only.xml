@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dc="http://purl.org/dc/elements/1.1/"
+       identifier="id-model-org-only"
+       version="3.0">
+  <name>Organization only</name>
+  <documentation>Legal exchange file with no diagrams.</documentation>
+  <metadata>
+    <schema>Dublin Core</schema>
+    <schemaversion>1.1</schemaversion>
+    <dc:creator>ArchiMate Viewer tests</dc:creator>
+  </metadata>
+  <elements>
+    <element identifier="id-actor" xsi:type="BusinessActor">
+      <name>Claims Actor</name>
+    </element>
+    <element identifier="id-proc" xsi:type="BusinessProcess">
+      <name>Handle Claim</name>
+    </element>
+    <element identifier="id-app" xsi:type="ApplicationComponent">
+      <name>Claims App</name>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r-asg" source="id-actor" target="id-proc" xsi:type="Assignment"/>
+    <relationship identifier="id-r-srv" source="id-app" target="id-proc" xsi:type="Serving"/>
+  </relationships>
+  <organizations>
+    <item identifier="id-org-root">
+      <label>Model</label>
+      <item identifier="id-org-business">
+        <label>Business</label>
+        <item identifierRef="id-actor"/>
+        <item identifierRef="id-proc"/>
+        <item identifierRef="id-r-asg"/>
+      </item>
+      <item identifier="id-org-application">
+        <label>Application</label>
+        <item identifierRef="id-app"/>
+      </item>
+    </item>
+  </organizations>
+</model>

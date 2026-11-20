@@ -6,10 +6,10 @@ import type {
   DiagramNode,
   DiagramView,
   ElementNotation,
+  FontStyle,
   MarkerKind,
   Point,
-  RgbColor,
-  VisualStyle
+  RgbColor
 } from "./types";
 
 interface AbsNode {
@@ -37,14 +37,13 @@ export function renderView(view: DiagramView, model: ArchiMateModel): string {
   unnestElementBoxes(view, model);
   const abs = flattenNodes(view.nodes, model, 0, 0);
   const byId = new Map(abs.map((item) => [item.node.identifier, item]));
-  const bounds = contentBounds(abs, view.connections);
+  const routed = routeConnections(view.connections, byId, model);
+  const bounds = contentBounds(abs, view.connections, routed);
   const width = Math.max(bounds.maxX - bounds.minX, 1);
   const height = Math.max(bounds.maxY - bounds.minY, 1);
 
   const nodeSvg = abs.map((item) => renderNode(item)).join("");
-  const connSvg = view.connections
-    .map((conn) => renderConnection(conn, byId, model))
-    .join("");
+  const connSvg = routed.map((item) => renderConnection(item.conn, item.points, model)).join("");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" class="av-diagram" overflow="visible" width="${width}" height="${height}" viewBox="${bounds.minX} ${bounds.minY} ${width} ${height}" data-view-id="${esc(view.identifier)}">
   <defs>${markerDefs()}</defs>
@@ -85,11 +84,21 @@ function flattenNodes(
   return out;
 }
 
-function contentBounds(nodes: AbsNode[], connections: DiagramConnection[]) {
+function contentBounds(
+  nodes: AbsNode[],
+  connections: DiagramConnection[],
+  routed: { points: Point[] }[] = []
+) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
+  const include = (point: Point) => {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  };
   for (const item of nodes) {
     minX = Math.min(minX, item.absX);
     minY = Math.min(minY, item.absY);
@@ -98,10 +107,18 @@ function contentBounds(nodes: AbsNode[], connections: DiagramConnection[]) {
   }
   for (const conn of connections) {
     for (const bp of conn.bendpoints) {
-      minX = Math.min(minX, bp.x);
-      minY = Math.min(minY, bp.y);
-      maxX = Math.max(maxX, bp.x);
-      maxY = Math.max(maxY, bp.y);
+      include(bp);
+    }
+    if (conn.sourceAttachment) {
+      include(conn.sourceAttachment);
+    }
+    if (conn.targetAttachment) {
+      include(conn.targetAttachment);
+    }
+  }
+  for (const item of routed) {
+    for (const point of item.points) {
+      include(point);
     }
   }
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
@@ -120,7 +137,8 @@ function renderNode(item: AbsNode): string {
   const topLabel = isGroup || nestedParent;
   const shape = isNote ? "note" : isGroup ? "dashed-rounded" : notation.shape;
   const dash = shape.startsWith("dashed") ? "5 4" : undefined;
-  const body = shapeMarkup(shape, absX, absY, node.w, node.h, fill, strokeColor, STROKE, dash);
+  const strokeWidth = node.style?.lineWidth || STROKE;
+  const body = shapeMarkup(shape, absX, absY, node.w, node.h, fill, strokeColor, strokeWidth, dash);
   const showIcon = !isNote && !isGroup && shape === "rect" && notation.icon !== "none";
   const iconPad = ICON_BOX * ICON_SCALE + 6;
   const icon = showIcon
@@ -140,7 +158,8 @@ function renderNode(item: AbsNode): string {
         node.h - (topLabel ? 8 : 16),
         fontSize,
         fontColor,
-        topLabel ? "start" : "middle"
+        topLabel ? "start" : "middle",
+        node.style?.font
       )
     : "";
   const parentAttr = item.parentId ? ` data-parent-id="${esc(item.parentId)}"` : "";
@@ -252,7 +271,8 @@ function textBlock(
   maxH: number,
   size: number,
   fill: string,
-  anchor: "middle" | "start"
+  anchor: "middle" | "start",
+  font?: FontStyle
 ): string {
   const lineHeight = size + 2;
   const lines = wrap(text, maxW, size).slice(0, Math.max(1, Math.floor(maxH / lineHeight)));
@@ -264,7 +284,25 @@ function textBlock(
       return `<tspan x="${x}" dy="${dy}">${esc(line)}</tspan>`;
     })
     .join("");
-  return `<text class="av-label" x="${x}" y="${startY}" text-anchor="${anchor}"${baseline} font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="${size}" fill="${fill}">${tspans}</text>`;
+  return `<text class="av-label" x="${x}" y="${startY}" text-anchor="${anchor}"${baseline} font-family="${esc(font?.name || "Segoe UI, Helvetica, Arial, sans-serif")}" font-size="${size}" fill="${fill}"${fontAttrs(font)}>${tspans}</text>`;
+}
+
+function fontAttrs(font?: FontStyle): string {
+  const style = (font?.style || "").toLowerCase();
+  if (!style || style === "plain") {
+    return "";
+  }
+  let extra = "";
+  if (style.includes("bold")) {
+    extra += ` font-weight="bold"`;
+  }
+  if (style.includes("italic")) {
+    extra += ` font-style="italic"`;
+  }
+  if (style.includes("underline")) {
+    extra += ` text-decoration="underline"`;
+  }
+  return extra;
 }
 
 function wrap(text: string, maxW: number, size: number): string[] {
@@ -290,26 +328,150 @@ function wrap(text: string, maxW: number, size: number): string[] {
   return lines;
 }
 
-function renderConnection(
-  conn: DiagramConnection,
+function routeConnections(
+  connections: DiagramConnection[],
   nodes: Map<string, AbsNode>,
   model: ArchiMateModel
-): string {
-  const source = nodes.get(conn.source);
-  const target = nodes.get(conn.target);
+): { conn: DiagramConnection; points: Point[] }[] {
+  const routes = new Map<string, Point[]>();
+  const connectionIds = new Set(connections.map((conn) => conn.identifier));
+  const pending = [...connections];
+  let guard = pending.length + 2;
+  while (pending.length && guard--) {
+    const still: DiagramConnection[] = [];
+    let progressed = false;
+    for (const conn of pending) {
+      const points = tryRouteConnection(conn, nodes, routes, model, connectionIds);
+      if (points && points.length >= 2) {
+        routes.set(conn.identifier, points);
+        progressed = true;
+      } else {
+        still.push(conn);
+      }
+    }
+    if (!progressed) {
+      for (const conn of still) {
+        const fallback = attachmentPath(conn);
+        if (fallback && fallback.length >= 2) {
+          routes.set(conn.identifier, fallback);
+        }
+      }
+      break;
+    }
+    pending.length = 0;
+    pending.push(...still);
+  }
+  return connections
+    .map((conn) => {
+      const points = routes.get(conn.identifier);
+      return points ? { conn, points } : undefined;
+    })
+    .filter((item): item is { conn: DiagramConnection; points: Point[] } => Boolean(item));
+}
+
+function tryRouteConnection(
+  conn: DiagramConnection,
+  nodes: Map<string, AbsNode>,
+  routes: Map<string, Point[]>,
+  model: ArchiMateModel,
+  connectionIds: Set<string>
+): Point[] | undefined {
+  const isLine = conn.xsiType === "Line";
+  if (isLine && (!conn.source || !conn.target)) {
+    return attachmentPath(conn);
+  }
+  const source = resolveEnd(conn.source, nodes, routes, model, connectionIds);
+  const target = resolveEnd(conn.target, nodes, routes, model, connectionIds);
+  if (source === "pending" || target === "pending") {
+    return undefined;
+  }
+  if (!source && !target) {
+    return attachmentPath(conn);
+  }
   if (!source || !target) {
+    return undefined;
+  }
+  if (conn.sourceAttachment || conn.targetAttachment) {
+    const start = conn.sourceAttachment || attach(source.box, conn.bendpoints[0] || center(target.box));
+    const end =
+      conn.targetAttachment ||
+      attach(target.box, conn.bendpoints[conn.bendpoints.length - 1] || center(source.box));
+    return conn.bendpoints.length ? [start, ...conn.bendpoints, end] : [start, end];
+  }
+  return connectionRoute(source.box, target.box, conn.bendpoints);
+}
+
+function resolveEnd(
+  id: string,
+  nodes: Map<string, AbsNode>,
+  routes: Map<string, Point[]>,
+  model: ArchiMateModel,
+  connectionIds: Set<string>
+): { box: Bounds } | "pending" | undefined {
+  if (!id) {
+    return undefined;
+  }
+  const node = nodes.get(id);
+  if (node) {
+    return { box: boxOf(node) };
+  }
+  const byElement = [...nodes.values()].find((item) => item.node.elementRef === id);
+  if (byElement) {
+    return { box: boxOf(byElement) };
+  }
+  const route = routes.get(id);
+  if (route && route.length) {
+    const mid = route[Math.floor(route.length / 2)];
+    return { box: { x: mid.x - 1, y: mid.y - 1, w: 2, h: 2 } };
+  }
+  if (connectionIds.has(id)) {
+    return "pending";
+  }
+  const rel = model.relationships.get(id);
+  if (rel) {
+    const source = resolveEnd(rel.source, nodes, routes, model, connectionIds);
+    const target = resolveEnd(rel.target, nodes, routes, model, connectionIds);
+    if (source === "pending" || target === "pending") {
+      return "pending";
+    }
+    if (source && target) {
+      const a = center(source.box);
+      const b = center(target.box);
+      return { box: { x: (a.x + b.x) / 2 - 1, y: (a.y + b.y) / 2 - 1, w: 2, h: 2 } };
+    }
+  }
+  return undefined;
+}
+
+function attachmentPath(conn: DiagramConnection): Point[] | undefined {
+  const points: Point[] = [];
+  if (conn.sourceAttachment) {
+    points.push(conn.sourceAttachment);
+  }
+  points.push(...conn.bendpoints);
+  if (conn.targetAttachment) {
+    points.push(conn.targetAttachment);
+  }
+  return points.length >= 2 ? points : undefined;
+}
+
+function renderConnection(conn: DiagramConnection, points: Point[], model: ArchiMateModel): string {
+  if (points.length < 2) {
     return "";
   }
+  const isLine = conn.xsiType === "Line";
   const rel = conn.relationshipRef ? model.relationships.get(conn.relationshipRef) : undefined;
-  const rawType = rel?.type || (conn.xsiType !== "Relationship" && conn.xsiType !== "Line" ? conn.xsiType : "");
-  const type = normalizeRelationshipType(rawType || "Association");
-  const notation = getRelationshipNotation(type, {
-    accessType: rel?.accessType,
-    isDirected: rel?.isDirected
-  });
+  const rawType = rel?.type || (!isLine && conn.xsiType !== "Relationship" ? conn.xsiType : "");
+  const type = isLine ? "Line" : normalizeRelationshipType(rawType || "Association");
+  const notation = isLine
+    ? { dash: "solid" as const, sourceMarker: "none" as const, targetMarker: "none" as const }
+    : getRelationshipNotation(type, {
+        accessType: rel?.accessType,
+        isDirected: rel?.isDirected
+      });
   const stroke = color(conn.style?.lineColor, "#222");
   const dash = dashArray(notation.dash);
-  const points = connectionRoute(boxOf(source), boxOf(target), conn.bendpoints);
+  const strokeWidth = conn.style?.lineWidth || STROKE;
   const d = pointsToPath(points);
   const srcMarker = markerUrl(notation.sourceMarker, stroke, "start");
   const tgtMarker = markerUrl(notation.targetMarker, stroke, "end");
@@ -320,8 +482,8 @@ function renderConnection(
     : "";
   const start = points[0];
   const end = points[points.length - 1];
-  return `<g class="av-connection" data-kind="relationship" data-element-id="${esc(conn.identifier)}" data-type="${esc(type)}" data-source="${esc(conn.source)}" data-target="${esc(conn.target)}" data-bendpoints="${esc(formatBendpoints(conn.bendpoints))}">
-    <path class="av-connection-line" d="${d}" fill="none" stroke="${stroke}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-start="${srcMarker}" marker-end="${tgtMarker}"/>
+  return `<g class="av-connection" data-kind="${isLine ? "line" : "relationship"}" data-element-id="${esc(conn.identifier)}" data-type="${esc(type)}" data-source="${esc(conn.source)}" data-target="${esc(conn.target)}" data-bendpoints="${esc(formatBendpoints(conn.bendpoints))}">
+    <path class="av-connection-line" d="${d}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-start="${srcMarker}" marker-end="${tgtMarker}"/>
     <path class="av-connection-hit" d="${d}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="18" pointer-events="stroke"/>
     ${labelSvg}
     <circle class="av-connection-end" data-end="source" cx="${start.x}" cy="${start.y}" r="12" fill="transparent"/>
