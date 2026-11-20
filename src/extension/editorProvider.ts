@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getNonce, looksLikeArchimate } from "./util";
+import { getNonce, looksLikeArchimate, looksLikeZipArchive } from "./util";
 
 export class ArchimateEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = "archimate.viewer";
@@ -47,11 +47,19 @@ export class ArchimateEditorProvider implements vscode.CustomTextEditorProvider 
         return;
       }
       if (message.type === "ready") {
+        if (looksLikeZipArchive(document.getText())) {
+          webviewPanel.webview.postMessage({
+            type: "error",
+            message:
+              "This .archimate file is a zip archive (Archi saves models with images this way). Re-save it in Archi without images, or export it as Open Exchange XML."
+          });
+          return;
+        }
         if (!looksLikeArchimate(document.getText())) {
           webviewPanel.webview.postMessage({
             type: "error",
             message:
-              "This file does not look like an Open Group ArchiMate Model Exchange XML document. Use Open With… to switch back to the text editor."
+              "This file does not look like an ArchiMate Model Exchange XML or Archi .archimate document. Use Open With… to switch back to the text editor."
           });
           return;
         }

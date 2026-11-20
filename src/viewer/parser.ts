@@ -9,6 +9,7 @@ import type {
   RgbColor,
   VisualStyle
 } from "./types";
+import { isArchiModel, parseArchiModel } from "./archi";
 import { normalizeRelationshipType } from "./notation";
 import {
   attr,
@@ -31,8 +32,11 @@ const NESTING_RELATIONS = new Set(["Composition", "Aggregation", "Assignment"]);
 export function parseModel(xml: string): ArchiMateModel {
   const doc = parseXml(xml);
   const root = doc.documentElement;
+  if (root && isArchiModel(root)) {
+    return parseArchiModel(root);
+  }
   if (!root || !isArchiMateModel(root)) {
-    throw new Error("Not an Open Group ArchiMate Model Exchange XML file");
+    throw new Error("Not an ArchiMate Model Exchange XML or Archi .archimate file");
   }
 
   const warnings: string[] = [];
@@ -89,7 +93,8 @@ export function parseModel(xml: string): ArchiMateModel {
     elements,
     relationships,
     views,
-    warnings
+    warnings,
+    format: "exchange"
   };
 }
 

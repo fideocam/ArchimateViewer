@@ -8,5 +8,13 @@ export function getNonce(): string {
 }
 
 export function looksLikeArchimate(xml: string): boolean {
+  if (/archimatetool\.com\/archimate/i.test(xml) && /<(?:[\w-]+:)?model[\s>]/i.test(xml)) {
+    return true;
+  }
   return /opengroup\.org\/xsd\/archimate/i.test(xml) && /<model[\s>]/i.test(xml);
+}
+
+/** Archi saves models that embed images as a zip archive instead of plain XML. */
+export function looksLikeZipArchive(text: string): boolean {
+  return text.startsWith("PK\u0003\u0004");
 }

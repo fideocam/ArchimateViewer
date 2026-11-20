@@ -27,10 +27,7 @@ export function parseXml(xml: string): Document {
 
 export function localName(node: Node): string {
   const el = node as Element;
-  if (el.localName) {
-    return el.localName;
-  }
-  const name = el.nodeName || "";
+  const name = el.localName || el.nodeName || "";
   const i = name.indexOf(":");
   return i >= 0 ? name.slice(i + 1) : name;
 }
@@ -89,8 +86,8 @@ export function attr(el: Element, name: string): string | undefined {
 
 export function xsiType(el: Element): string {
   const raw =
-    el.getAttributeNS?.(XSI_NS, "type") ||
     el.getAttribute("xsi:type") ||
+    el.getAttributeNS?.(XSI_NS, "type") ||
     el.getAttribute("type") ||
     "";
   return stripPrefix(raw);

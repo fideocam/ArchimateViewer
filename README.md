@@ -1,6 +1,6 @@
 # ArchiMate Viewer
 
-VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and renders the diagram with pan/zoom.
+VS Code extension that opens [Open Group ArchiMate Model Exchange](https://www.opengroup.org/open-group-archimate-model-exchange-file-format) XML and native [Archi](https://www.archimatetool.com/) `.archimate` files, and renders the diagram with pan/zoom.
 
 This is a **viewer**, not a modeler.
 
@@ -14,7 +14,7 @@ npm run compile
 
 Open this folder in VS Code / Cursor and press **F5**. A new Extension Development Host window opens on the `samples/` folder. Open `archinsurance-claims.xml` (or use **Open With… → ArchiMate Viewer**).
 
-- `.archimate` files open in the viewer by default
+- `.archimate` files (Archi's native format) open in the viewer by default. Models Archi saved as a zip archive (because they embed images) are not supported — re-save without images or export to Open Exchange XML.
 - `.xml` files can be opened with **Open With… → ArchiMate Viewer**, the **ArchiMate: Open Viewer** command, or by setting:
 
 ```json
@@ -82,7 +82,7 @@ Then open http://localhost:4173/demo/ — load a sample, or open/drop an `.xml` 
 
 ## ArchiMate coverage
 
-Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`), including elements, relationships, diagram views, visual bounds, styles, and bendpoints. ArchiMate 2.x `label` text is also read. Nested model elements inside another element box are drawn as **separate boxes with relationship arrows** (not both nesting and an arrow). Visual grouping containers (layer frames without an `elementRef`) stay as frames.
+Parses Open Group ArchiMate 3.x Model Exchange XML (`http://www.opengroup.org/xsd/archimate/3.0/`), including elements, relationships, diagram views, visual bounds, styles, and bendpoints. ArchiMate 2.x `label` text is also read. Archi `.archimate` models are read too (folders, elements, relationships, ArchiMate views with groups, notes, view references, colours, fonts and relative bendpoints; sketch and canvas views are skipped). Deleting and re-pointing arrows writes valid Archi XML back, keeping `sourceConnection` nesting and `targetConnections` in sync. Nested model elements inside another element box are drawn as **separate boxes with relationship arrows** (not both nesting and an arrow). Visual grouping containers (layer frames without an `elementRef`) stay as frames.
 
 **Elements:** Business, Application, Technology, Physical, Motivation, Strategy, Implementation & Migration, plus Grouping, Location, and Junctions. Shapes follow ArchiMate aspect conventions (square = active structure, rounded = behavior, folded corner = passive structure, ellipse/bevel = motivation, 3D box = nodes/devices). Layer colours match the usual Archi palette.
 

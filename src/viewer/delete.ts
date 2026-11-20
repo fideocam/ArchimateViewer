@@ -118,11 +118,10 @@ export function applyDeletion(model: ArchiMateModel, plan: DeletionPlan) {
 export function setIdentifierAttribute(
   xml: string,
   identifier: string,
-  attribute: "source" | "target",
+  attribute: string,
   value: string
 ): string {
-  const quoted = xml.indexOf(`identifier="${identifier}"`);
-  const at = quoted >= 0 ? quoted : xml.indexOf(`identifier='${identifier}'`);
+  const at = idAttributeIndex(xml, identifier);
   if (at < 0) {
     return xml;
   }
@@ -139,7 +138,60 @@ export function setIdentifierAttribute(
   return xml.slice(0, tagStart) + next + xml.slice(tagEnd);
 }
 
+/**
+ * Re-point one end of an Archi diagram connection. Archi nests each `sourceConnection` inside its
+ * source `child` and lists incoming connection ids in the target's `targetConnections` attribute,
+ * so both have to follow the new end for Archi to reopen the file.
+ */
+export function retargetArchiConnection(
+  xml: string,
+  connectionId: string,
+  end: "source" | "target",
+  oldNodeId: string,
+  newNodeId: string
+): string {
+  let out = setIdentifierAttribute(xml, connectionId, end, newNodeId);
+  if (end === "target") {
+    out = editTargetConnections(out, oldNodeId, (ids) => ids.filter((id) => id !== connectionId));
+    return editTargetConnections(out, newNodeId, (ids) => (ids.includes(connectionId) ? ids : [...ids, connectionId]));
+  }
+  const span = elementSpan(out, connectionId);
+  if (!span) {
+    return out;
+  }
+  const fragment = out.slice(span.start, span.end);
+  out = removeSpans(out, [connectionId]);
+  const parent = elementSpan(out, newNodeId);
+  if (!parent) {
+    return xml;
+  }
+  const openEnd = out.indexOf(">", parent.start);
+  const indent = lineIndent(out, parent.start);
+  if (out[openEnd - 1] === "/") {
+    const name = /^<([A-Za-z_][\w:.-]*)/.exec(out.slice(parent.start))?.[1] || "child";
+    const open = out.slice(parent.start, openEnd - 1).replace(/\s+$/, "");
+    return `${out.slice(0, parent.start)}${open}>\n${indent}  ${fragment}\n${indent}</${name}>${out.slice(parent.end)}`;
+  }
+  const closeStart = out.lastIndexOf("</", parent.end - 1);
+  return `${out.slice(0, closeStart)}  ${fragment}\n${indent}${out.slice(closeStart)}`;
+}
+
 export function removeFromXml(xml: string, ids: string[]): string {
+  return removeSpans(dropTargetConnections(xml, new Set(ids)), ids);
+}
+
+/** Archi lists incoming connection ids on the target `child`; drop references to removed connections. */
+function dropTargetConnections(xml: string, removed: Set<string>): string {
+  if (/\stargetConnections=/.test(xml)) {
+    xml = xml.replace(/(\s)targetConnections=(["'])([^"']*)\2/g, (_match, space: string, quote: string, value: string) => {
+      const kept = value.split(/\s+/).filter((id) => id && !removed.has(id));
+      return kept.length ? `${space}targetConnections=${quote}${kept.join(" ")}${quote}` : "";
+    });
+  }
+  return xml;
+}
+
+function removeSpans(xml: string, ids: string[]): string {
   const spans = ids
     .map((id) => elementSpan(xml, id))
     .filter((span): span is { start: number; end: number } => Boolean(span))
@@ -168,8 +220,36 @@ function escapeXmlAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
+function editTargetConnections(xml: string, nodeId: string, edit: (ids: string[]) => string[]): string {
+  const at = idAttributeIndex(xml, nodeId);
+  if (at < 0) {
+    return xml;
+  }
+  const tagStart = xml.lastIndexOf("<", at);
+  const tagEnd = xml.indexOf(">", at);
+  const selfClosing = xml[tagEnd - 1] === "/";
+  const tag = xml.slice(tagStart, selfClosing ? tagEnd - 1 : tagEnd);
+  const match = /\stargetConnections=(["'])([^"']*)\1/.exec(tag);
+  const ids = edit(match ? match[2].split(/\s+/).filter(Boolean) : []);
+  const attribute = ids.length ? ` targetConnections="${ids.map(escapeXmlAttr).join(" ")}"` : "";
+  const next = match ? tag.replace(match[0], attribute) : tag.replace(/\s*$/, "") + attribute;
+  return xml.slice(0, tagStart) + next + xml.slice(selfClosing ? tagEnd - 1 : tagEnd);
+}
+
+function lineIndent(xml: string, index: number): string {
+  const lineStart = xml.lastIndexOf("\n", index - 1) + 1;
+  return /^[ \t]*/.exec(xml.slice(lineStart, index))?.[0] || "";
+}
+
+/** Index of the `identifier="…"` (exchange) or `id="…"` (Archi) attribute that names `id`. */
+function idAttributeIndex(xml: string, id: string): number {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`\\s(?:identifier|id)=(["'])${escaped}\\1`).exec(xml);
+  return match ? match.index + 1 : -1;
+}
+
 function elementSpan(xml: string, id: string): { start: number; end: number } | null {
-  const at = xml.indexOf(`identifier="${id}"`) >= 0 ? xml.indexOf(`identifier="${id}"`) : xml.indexOf(`identifier='${id}'`);
+  const at = idAttributeIndex(xml, id);
   if (at < 0) {
     return null;
   }

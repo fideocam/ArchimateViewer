@@ -90,6 +90,8 @@ export interface ArchiMateModel {
   relationships: Map<string, ArchiMateRelationship>;
   views: DiagramView[];
   warnings: string[];
+  /** Source file format: Open Group exchange XML or native Archi `.archimate`. */
+  format?: "exchange" | "archi";
 }
 
 export type Layer =

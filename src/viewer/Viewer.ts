@@ -1,5 +1,5 @@
 import { Canvas } from "./canvas";
-import { applyDeletion, planDeletion, removeFromXml, setIdentifierAttribute } from "./delete";
+import { applyDeletion, planDeletion, removeFromXml, retargetArchiConnection, setIdentifierAttribute } from "./delete";
 import { parseModel } from "./parser";
 import { renderView } from "./renderer";
 import { unnestElementBoxes } from "./unnest";
@@ -193,6 +193,7 @@ export class Viewer {
       this.canvas.setSvg(renderView(view, this.model));
       return;
     }
+    const previousNodeId = connection[end];
     connection[end] = nodeId;
     const relationship = connection.relationshipRef
       ? this.model.relationships.get(connection.relationshipRef)
@@ -201,7 +202,10 @@ export class Viewer {
       relationship[end] = node.elementRef;
     }
     if (this.sourceXml) {
-      this.sourceXml = setIdentifierAttribute(this.sourceXml, connection.identifier, end, nodeId);
+      this.sourceXml =
+        this.model.format === "archi"
+          ? retargetArchiConnection(this.sourceXml, connection.identifier, end, previousNodeId, nodeId)
+          : setIdentifierAttribute(this.sourceXml, connection.identifier, end, nodeId);
       if (relationship && connection.relationshipRef) {
         this.sourceXml = setIdentifierAttribute(this.sourceXml, connection.relationshipRef, end, node.elementRef);
       }
