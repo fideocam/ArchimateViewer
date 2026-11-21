@@ -161,19 +161,103 @@ export function retargetArchiConnection(
   }
   const fragment = out.slice(span.start, span.end);
   out = removeSpans(out, [connectionId]);
-  const parent = elementSpan(out, newNodeId);
-  if (!parent) {
+  return appendInside(out, newNodeId, fragment) ?? xml;
+}
+
+/**
+ * Move an Archi diagram `child` (with everything nested in it) into another container — a Group
+ * `child` or the diagram element itself — and rewrite its `<bounds>` to the node's new geometry,
+ * which must already be relative to that container.
+ */
+export function moveArchiChild(
+  xml: string,
+  node: { identifier: string; x: number; y: number; w: number; h: number },
+  containerId: string
+): string {
+  const span = elementSpan(xml, node.identifier);
+  if (!span || !elementSpan(xml, containerId)) {
     return xml;
   }
-  const openEnd = out.indexOf(">", parent.start);
-  const indent = lineIndent(out, parent.start);
-  if (out[openEnd - 1] === "/") {
-    const name = /^<([A-Za-z_][\w:.-]*)/.exec(out.slice(parent.start))?.[1] || "child";
-    const open = out.slice(parent.start, openEnd - 1).replace(/\s+$/, "");
-    return `${out.slice(0, parent.start)}${open}>\n${indent}  ${fragment}\n${indent}</${name}>${out.slice(parent.end)}`;
+  const oldIndent = lineIndent(xml, span.start);
+  const fragment = setOwnBounds(xml.slice(span.start, span.end), node);
+  const out = removeSpans(xml, [node.identifier]);
+  return appendInside(out, containerId, fragment, oldIndent) ?? xml;
+}
+
+/** Add a diagram connection in Archi's shape: nested in the source `child`, listed on the target. */
+export function addArchiConnection(
+  xml: string,
+  conn: { identifier: string; source: string; target: string; relationshipRef?: string }
+): string {
+  const relationship = conn.relationshipRef ? ` archimateRelationship="${escapeXmlAttr(conn.relationshipRef)}"` : "";
+  const fragment = `<sourceConnection xsi:type="archimate:Connection" id="${escapeXmlAttr(conn.identifier)}" source="${escapeXmlAttr(conn.source)}" target="${escapeXmlAttr(conn.target)}"${relationship}/>`;
+  const out = appendInside(xml, conn.source, fragment);
+  if (out == null) {
+    return xml;
   }
-  const closeStart = out.lastIndexOf("</", parent.end - 1);
-  return `${out.slice(0, closeStart)}  ${fragment}\n${indent}${out.slice(closeStart)}`;
+  return editTargetConnections(out, conn.target, (ids) => (ids.includes(conn.identifier) ? ids : [...ids, conn.identifier]));
+}
+
+/** Add a model relationship to the `relations` folder (creating the folder if the file has none). */
+export function addArchiRelationship(
+  xml: string,
+  rel: { identifier: string; type: string; source: string; target: string; name?: string }
+): string {
+  const name = rel.name ? ` name="${escapeXmlAttr(rel.name)}"` : "";
+  const fragment = `<element xsi:type="archimate:${escapeXmlAttr(rel.type)}Relationship"${name} id="${escapeXmlAttr(rel.identifier)}" source="${escapeXmlAttr(rel.source)}" target="${escapeXmlAttr(rel.target)}"/>`;
+  const folder = /<folder\b[^>]*\stype=(["'])relations\1[^>]*>/.exec(xml);
+  const folderId = folder && /\sid=(["'])([^"']+)\1/.exec(folder[0])?.[2];
+  if (folderId) {
+    return appendInside(xml, folderId, fragment) ?? xml;
+  }
+  const close = xml.lastIndexOf("</");
+  if (close < 0) {
+    return xml;
+  }
+  return `${xml.slice(0, close)}  <folder name="Relations" id="id-folder-relations" type="relations">\n    ${fragment}\n  </folder>\n${xml.slice(close)}`;
+}
+
+/**
+ * Insert `fragment` as the last child of the element named `parentId`. When `fragmentIndent` is
+ * given, the fragment's continuation lines are re-indented to match its new depth.
+ */
+function appendInside(xml: string, parentId: string, fragment: string, fragmentIndent?: string): string | null {
+  const parent = elementSpan(xml, parentId);
+  if (!parent) {
+    return null;
+  }
+  const openEnd = xml.indexOf(">", parent.start);
+  const indent = lineIndent(xml, parent.start);
+  const inner = `${indent}  `;
+  const body = fragmentIndent == null ? fragment : fragment.split(`\n${fragmentIndent}`).join(`\n${inner}`);
+  if (xml[openEnd - 1] === "/") {
+    const name = /^<([A-Za-z_][\w:.-]*)/.exec(xml.slice(parent.start))?.[1] || "child";
+    const open = xml.slice(parent.start, openEnd - 1).replace(/\s+$/, "");
+    return `${xml.slice(0, parent.start)}${open}>\n${inner}${body}\n${indent}</${name}>${xml.slice(parent.end)}`;
+  }
+  const closeStart = xml.lastIndexOf("</", parent.end - 1);
+  const lineStart = xml.lastIndexOf("\n", closeStart - 1) + 1;
+  if (/^[ \t]*$/.test(xml.slice(lineStart, closeStart))) {
+    return `${xml.slice(0, lineStart)}${inner}${body}\n${xml.slice(lineStart)}`;
+  }
+  return `${xml.slice(0, closeStart)}\n${inner}${body}\n${indent}${xml.slice(closeStart)}`;
+}
+
+/** Replace (or add) the `<bounds>` that belongs to the outermost `child` of `fragment`. */
+function setOwnBounds(fragment: string, box: { x: number; y: number; w: number; h: number }): string {
+  const bounds = `<bounds x="${Math.round(box.x)}" y="${Math.round(box.y)}" width="${Math.round(box.w)}" height="${Math.round(box.h)}"/>`;
+  const openEnd = fragment.indexOf(">");
+  if (fragment[openEnd - 1] === "/") {
+    const name = /^<([A-Za-z_][\w:.-]*)/.exec(fragment)?.[1] || "child";
+    return `${fragment.slice(0, openEnd - 1).replace(/\s+$/, "")}>${bounds}</${name}>`;
+  }
+  const own = /<bounds\b[^>]*?(\/>|>[\s\S]*?<\/bounds>)/.exec(fragment.slice(openEnd));
+  const nested = fragment.slice(openEnd).search(/<(child|sourceConnection)\b/);
+  if (own && (nested < 0 || own.index < nested)) {
+    const start = openEnd + own.index;
+    return fragment.slice(0, start) + bounds + fragment.slice(start + own[0].length);
+  }
+  return `${fragment.slice(0, openEnd + 1)}${bounds}${fragment.slice(openEnd + 1)}`;
 }
 
 export function removeFromXml(xml: string, ids: string[]): string {

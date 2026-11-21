@@ -1,8 +1,17 @@
 import { Canvas } from "./canvas";
-import { applyDeletion, planDeletion, removeFromXml, retargetArchiConnection, setIdentifierAttribute } from "./delete";
+import {
+  addArchiConnection,
+  addArchiRelationship,
+  applyDeletion,
+  moveArchiChild,
+  planDeletion,
+  removeFromXml,
+  retargetArchiConnection,
+  setIdentifierAttribute
+} from "./delete";
 import { parseModel } from "./parser";
 import { renderView } from "./renderer";
-import { unnestElementBoxes } from "./unnest";
+import { unnestElementBoxes, type UnnestResult } from "./unnest";
 import type { ArchiMateModel, DiagramConnection, DiagramNode, ImportResult, Point, ViewerOptions } from "./types";
 
 type Handler = (payload?: unknown) => void;
@@ -15,6 +24,8 @@ export class Viewer {
   private listeners = new Map<string, Handler[]>();
   private hostStyle: HTMLStyleElement | null = null;
   private sourceXml = "";
+  /** Archi diagram box ids seen at the last import; boxes not in it were added by an outside edit. */
+  private knownNodeIds: Set<string> | null = null;
 
   constructor(options: ViewerOptions = {}) {
     if (options.container) {
@@ -50,6 +61,7 @@ export class Viewer {
 
   destroy() {
     this.detach();
+    this.knownNodeIds = null;
     this.listeners.clear();
     this.hostStyle?.remove();
     this.hostStyle = null;
@@ -60,10 +72,28 @@ export class Viewer {
       throw new Error("Viewer is not attached to a container");
     }
     this.emit("import.parse.start");
+    const original = xml;
     const model = parseModel(xml);
-    for (const diagram of model.views) {
-      unnestElementBoxes(diagram, model);
+    const previous = this.model;
+    if (model.format === "archi") {
+      // An Archi file's layout is kept as saved. When the file changes under us (e.g. an agent
+      // edited it), only boxes it newly nested inside element boxes are flattened into arrows,
+      // and that fix is written back so the file and Archi show the same layout.
+      const known = previous?.format === "archi" && previous.identifier === model.identifier ? this.knownNodeIds : null;
+      if (known) {
+        const only = (node: DiagramNode) => !known.has(node.identifier);
+        for (const diagram of model.views) {
+          xml = writeBackUnnest(xml, unnestElementBoxes(diagram, model, { only }));
+        }
+      }
+      this.knownNodeIds = collectViewNodeIds(model);
+    } else {
+      this.knownNodeIds = null;
+      for (const diagram of model.views) {
+        unnestElementBoxes(diagram, model);
+      }
     }
+    const rewritten = xml !== original;
     this.model = model;
     this.sourceXml = xml;
     this.emit("import.parse.complete", { model });
@@ -77,6 +107,9 @@ export class Viewer {
     this.currentViewId = view.identifier;
     this.canvas.setSvg(renderView(view, model));
     this.emit("import.render.complete", { view });
+    if (rewritten) {
+      this.emit("change", { xml });
+    }
     this.emit("import.done", { warnings: model.warnings });
     return { warnings: model.warnings };
   }
@@ -288,6 +321,7 @@ export class Viewer {
 .av-node.is-selected > rect, .av-node.is-selected > path, .av-node.is-selected > ellipse, .av-node.is-selected > circle { stroke: #1565c0; stroke-width: 2.5; }
 .av-connection.is-selected .av-connection-line { stroke: #1565c0; stroke-width: 3; }
 .av-viewport.is-dragging, .av-viewport.is-dragging .av-node, .av-viewport.is-dragging .av-connection { cursor: grabbing; }
+.av-type-badge { position: absolute; z-index: 6; pointer-events: none; padding: 2px 8px; border-radius: 4px; background: rgba(33, 33, 33, 0.85); color: #fff; font: 12px "Segoe UI", Helvetica, Arial, sans-serif; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); }
 .av-label-editor { position: absolute; z-index: 5; box-sizing: border-box; margin: 0; padding: 0 4px; border: 1px solid #3a7; border-radius: 2px; background: #fff; color: #222; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
 `;
     document.head.appendChild(this.hostStyle);
@@ -305,6 +339,30 @@ function findDiagramNode(nodes: DiagramNode[], id: string): DiagramNode | undefi
     }
   }
   return undefined;
+}
+
+function collectViewNodeIds(model: ArchiMateModel): Set<string> {
+  const ids = new Set<string>();
+  for (const view of model.views) {
+    for (const node of view.nodes) {
+      collectNodeIds(node, ids);
+    }
+  }
+  return ids;
+}
+
+/** Persist an unnest into Archi XML: new relationships, relocated boxes, then their arrows. */
+function writeBackUnnest(xml: string, result: UnnestResult): string {
+  for (const rel of result.relationships) {
+    xml = addArchiRelationship(xml, rel);
+  }
+  for (const move of result.moves) {
+    xml = moveArchiChild(xml, move.node, move.containerId);
+  }
+  for (const conn of result.connections) {
+    xml = addArchiConnection(xml, conn);
+  }
+  return xml;
 }
 
 function collectNodeIds(node: DiagramNode, into: Set<string>) {

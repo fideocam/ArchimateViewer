@@ -1,4 +1,5 @@
 import { dashArray, getElementNotation, getRelationshipNotation, normalizeRelationshipType } from "./notation";
+import { encloseGroupingMembers } from "./grouping";
 import { unnestElementBoxes } from "./unnest";
 import type {
   ArchiMateModel,
@@ -35,9 +36,10 @@ const ICON_BOX = 14;
 
 export function renderView(view: DiagramView, model: ArchiMateModel): string {
   unnestElementBoxes(view, model);
+  encloseGroupingMembers(view, model);
   const abs = flattenNodes(view.nodes, model, 0, 0);
   const byId = new Map(abs.map((item) => [item.node.identifier, item]));
-  const routed = routeConnections(view.connections, byId, model);
+  const routed = routeConnections(view.connections, byId, model).filter((item) => !item.conn.hidden);
   const bounds = contentBounds(abs, view.connections, routed);
   const width = Math.max(bounds.maxX - bounds.minX, 1);
   const height = Math.max(bounds.maxY - bounds.minY, 1);

@@ -67,7 +67,7 @@
     <element identifier="id-e-OrJunction" xsi:type="OrJunction"><name>OrJunction</name></element>
   </elements>
   <relationships>
-    <relationship identifier="id-r-Composition" source="id-e-Grouping" target="id-e-BusinessActor" xsi:type="Composition"/>
+    <relationship identifier="id-r-Composition" source="id-e-BusinessCollaboration" target="id-e-BusinessRole" xsi:type="Composition"/>
     <relationship identifier="id-r-Aggregation" source="id-e-Location" target="id-e-BusinessRole" xsi:type="Aggregation"/>
     <relationship identifier="id-r-Assignment" source="id-e-BusinessActor" target="id-e-BusinessProcess" xsi:type="Assignment"/>
     <relationship identifier="id-r-Realization" source="id-e-ApplicationComponent" target="id-e-ApplicationService" xsi:type="Realization"/>
@@ -144,7 +144,7 @@
         <node identifier="id-n-Location" xsi:type="Element" elementRef="id-e-Location" x="720" y="715" w="150" h="55"/>
         <node identifier="id-n-AndJunction" xsi:type="Element" elementRef="id-e-AndJunction" x="890" y="715" w="150" h="55"/>
         <node identifier="id-n-OrJunction" xsi:type="Element" elementRef="id-e-OrJunction" x="40" y="790" w="150" h="55"/>
-        <connection identifier="id-c-Composition" xsi:type="Relationship" relationshipRef="id-r-Composition" source="id-n-Grouping" target="id-n-BusinessActor"/>
+        <connection identifier="id-c-Composition" xsi:type="Relationship" relationshipRef="id-r-Composition" source="id-n-BusinessCollaboration" target="id-n-BusinessRole"/>
         <connection identifier="id-c-Aggregation" xsi:type="Relationship" relationshipRef="id-r-Aggregation" source="id-n-Location" target="id-n-BusinessRole"/>
         <connection identifier="id-c-Assignment" xsi:type="Relationship" relationshipRef="id-r-Assignment" source="id-n-BusinessActor" target="id-n-BusinessProcess"/>
         <connection identifier="id-c-Realization" xsi:type="Relationship" relationshipRef="id-r-Realization" source="id-n-ApplicationComponent" target="id-n-ApplicationService"/>

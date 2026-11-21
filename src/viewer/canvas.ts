@@ -66,6 +66,7 @@ export class Canvas {
   private onLabelEdit?: (kind: "node" | "connection", id: string, value: string) => void;
   private onDelete?: (kind: "node" | "connection", id: string) => void;
   private selected: { kind: "node" | "connection"; id: string } | null = null;
+  private typeBadge: HTMLElement | null = null;
   private onDestroy: Array<() => void> = [];
 
   constructor(
@@ -130,6 +131,7 @@ export class Canvas {
   }
 
   destroy() {
+    this.hideTypeBadge();
     for (const fn of this.onDestroy) {
       fn();
     }
@@ -245,6 +247,7 @@ export class Canvas {
           originY: event.clientY,
           nodes: this.nodesInDrag(node)
         };
+        this.showTypeBadge(node, event);
         this.viewport.setPointerCapture?.(event.pointerId);
         this.viewport.classList.add("is-dragging");
         return;
@@ -287,6 +290,7 @@ export class Canvas {
         for (const el of this.drag.nodes) {
           el.setAttribute("transform", `translate(${dx},${dy})`);
         }
+        this.moveTypeBadge(event);
         const boxes = this.redrawConnections(this.drag.nodes, dx, dy);
         this.includeBounds(boxes);
         return;
@@ -330,6 +334,7 @@ export class Canvas {
       if (this.drag) {
         const drag = this.drag;
         this.drag = null;
+        this.hideTypeBadge();
         this.viewport.classList.remove("is-dragging");
         const dx = (event.clientX - drag.originX) / this.scale;
         const dy = (event.clientY - drag.originY) / this.scale;
@@ -464,6 +469,35 @@ export class Canvas {
     el?.classList.add("is-selected");
   }
 
+  /** Floating label naming the grabbed element's ArchiMate type; follows the pointer while dragging. */
+  private showTypeBadge(node: Element, at: { clientX: number; clientY: number }) {
+    this.hideTypeBadge();
+    const text = nodeTypeLabel(node);
+    if (!text) {
+      return;
+    }
+    const badge = this.viewport.ownerDocument.createElement("div");
+    badge.className = "av-type-badge";
+    badge.textContent = text;
+    this.viewport.appendChild(badge);
+    this.typeBadge = badge;
+    this.moveTypeBadge(at);
+  }
+
+  private moveTypeBadge(at: { clientX: number; clientY: number }) {
+    if (!this.typeBadge) {
+      return;
+    }
+    const rect = this.viewport.getBoundingClientRect();
+    this.typeBadge.style.left = `${at.clientX - rect.left + 14}px`;
+    this.typeBadge.style.top = `${at.clientY - rect.top + 18}px`;
+  }
+
+  private hideTypeBadge() {
+    this.typeBadge?.remove();
+    this.typeBadge = null;
+  }
+
   private nodesInDrag(root: Element): Element[] {
     const svg = this.getSvgElement();
     if (!svg) {
@@ -553,6 +587,7 @@ export class Canvas {
         originY: pending.originY,
         nodes: this.nodesInDrag(host)
       };
+      this.showTypeBadge(host, { clientX: pending.originX, clientY: pending.originY });
     } else {
       this.connectionDrag = {
         id: pending.id,
@@ -887,4 +922,17 @@ function parseBendpoints(value: string | null): Point[] {
       const [x, y] = pair.split(",");
       return { x: Number(x), y: Number(y) };
     });
+}
+
+/** Human-readable type of a rendered node: "BusinessActor" → "Business Actor". */
+export function nodeTypeLabel(node: Element): string {
+  const kind = node.getAttribute("data-kind");
+  if (kind === "container") {
+    return "Group";
+  }
+  if (kind === "label") {
+    return "Note";
+  }
+  const type = node.getAttribute("data-type") || "";
+  return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
 }

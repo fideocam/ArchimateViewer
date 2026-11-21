@@ -90,6 +90,109 @@ describe("Archi .archimate parsing", () => {
     assert.match(svg, /data-element-id="id-c-serve"/);
     assert.match(svg, /Claims are handled/);
   });
+
+  it("keeps the file's layout for elements nested inside other elements", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="Nested" id="m">
+  <folder name="Application" id="f-app" type="application">
+    <element xsi:type="archimate:ApplicationComponent" name="Portal" id="e-portal"/>
+    <element xsi:type="archimate:ApplicationFunction" name="Search" id="e-search"/>
+  </folder>
+  <folder name="Views" id="f-views" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="V" id="v">
+      <child xsi:type="archimate:DiagramObject" id="d-portal" archimateElement="e-portal">
+        <bounds x="100" y="50" width="400" height="300"/>
+        <child xsi:type="archimate:DiagramObject" id="d-search" archimateElement="e-search">
+          <bounds x="30" y="60" width="120" height="55"/>
+        </child>
+      </child>
+    </element>
+  </folder>
+</archimate:model>`;
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    await viewer.importXML(xml);
+    const view = viewer.get("model").views[0];
+    const portal = view.nodes[0];
+    assert.deepEqual([portal.x, portal.y, portal.w, portal.h], [100, 50, 400, 300]);
+    assert.equal(portal.children[0]?.identifier, "d-search");
+    assert.equal(view.connections.length, 0, "nesting must not be replaced by synthetic arrows");
+    const search = container.querySelector('[data-element-id="d-search"]');
+    assert.equal(search?.getAttribute("data-x"), "130");
+    assert.equal(search?.getAttribute("data-y"), "110");
+    viewer.destroy();
+  });
+
+  it("unnests only boxes an outside edit nested, and writes the fix back to the file", async () => {
+    const base = `<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="Nested" id="m">
+  <folder name="Application" id="f-app" type="application">
+    <element xsi:type="archimate:ApplicationComponent" name="Portal" id="e-portal"/>
+    <element xsi:type="archimate:ApplicationFunction" name="Search" id="e-search"/>
+    <element xsi:type="archimate:ApplicationFunction" name="Export" id="e-export"/>
+  </folder>
+  <folder name="Relations" id="f-rel" type="relations">
+  </folder>
+  <folder name="Views" id="f-views" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="V" id="v">
+      <child xsi:type="archimate:DiagramObject" id="d-portal" archimateElement="e-portal">
+        <bounds x="100" y="50" width="400" height="300"/>
+        <child xsi:type="archimate:DiagramObject" id="d-search" archimateElement="e-search">
+          <bounds x="30" y="60" width="120" height="55"/>
+        </child>
+      </child>
+    </element>
+  </folder>
+</archimate:model>`;
+    // What an agent might write: a new box nested inside the existing Portal box.
+    const edited = base.replace(
+      `          <bounds x="30" y="60" width="120" height="55"/>
+        </child>`,
+      `          <bounds x="30" y="60" width="120" height="55"/>
+        </child>
+        <child xsi:type="archimate:DiagramObject" id="d-export" archimateElement="e-export">
+          <bounds x="200" y="60" width="120" height="55"/>
+        </child>`
+    );
+    assert.notEqual(edited, base);
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    const changes: string[] = [];
+    viewer.on("change", (payload) => changes.push((payload as { xml: string }).xml));
+
+    await viewer.importXML(base);
+    assert.equal(changes.length, 0, "opening a file must not rewrite it");
+
+    await viewer.importXML(edited);
+    assert.equal(changes.length, 1);
+    const view = viewer.get("model").views[0];
+    const portal = view.nodes.find((node) => node.identifier === "d-portal");
+    const exported = view.nodes.find((node) => node.identifier === "d-export");
+    assert.ok(portal && exported, "the new box is now a sibling of its former parent");
+    assert.deepEqual([portal.w, portal.h], [400, 300], "the authored parent keeps its size");
+    assert.deepEqual(portal.children.map((node) => node.identifier), ["d-search"], "authored nesting stays");
+    assert.deepEqual([exported.x, exported.y], [300, 366]);
+
+    const written = parseModel(changes[0]);
+    const writtenView = written.views[0];
+    const writtenExport = writtenView.nodes.find((node) => node.identifier === "d-export");
+    assert.deepEqual(writtenExport && [writtenExport.x, writtenExport.y], [300, 366]);
+    const rel = [...written.relationships.values()].find((item) => item.target === "e-export");
+    assert.equal(rel?.type, "Composition");
+    assert.equal(rel?.source, "e-portal");
+    const conn = writtenView.connections.find((item) => item.relationshipRef === rel?.identifier);
+    assert.equal(conn?.source, "d-portal");
+    assert.equal(conn?.target, "d-export");
+    assert.match(changes[0], new RegExp(`id="d-export"[^>]*targetConnections="${conn?.identifier}"|targetConnections="${conn?.identifier}"[^>]*id="d-export"`));
+
+    // The rewritten file reloads as-is: no further changes.
+    await viewer.importXML(changes[0]);
+    assert.equal(changes.length, 1);
+    viewer.destroy();
+  });
 });
 
 describe("Archi .archimate editing", () => {

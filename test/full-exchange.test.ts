@@ -167,15 +167,58 @@ describe("full Open Group exchange coverage", () => {
     assert.doesNotMatch(svg, /viewBox="0 0 1 1"/);
   });
 
-  it("still draws nested model elements as sibling boxes with arrows", () => {
+  it("keeps elements nested in a Grouping as a frame, without relationship arrows", () => {
     const model = parseModel(full);
     const view = model.views.find((item) => item.identifier === "id-view-nested-boxes");
     assert.ok(view);
     const svg = renderView(view, model);
     assert.match(svg, /data-element-id="n-group"/);
-    assert.match(svg, /data-element-id="n-nested-actor"/);
-    assert.doesNotMatch(svg, /data-parent-id="n-group"/);
-    assert.match(svg, /data-type="Composition"/);
+    assert.match(svg, /data-element-id="n-nested-actor"[^>]*data-parent-id="n-group"/);
+    assert.match(svg, /data-element-id="n-nested-role"[^>]*data-parent-id="n-group"/);
+    assert.doesNotMatch(svg, /data-element-id="c-nest"/);
+    assert.doesNotMatch(svg, /data-type="Composition"/);
+  });
+
+  it("pulls elements related to a Grouping inside it instead of drawing arrows", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="m">
+  <name>G</name>
+  <elements>
+    <element identifier="g" xsi:type="Grouping"><name>Claims</name></element>
+    <element identifier="a" xsi:type="BusinessActor"><name>A</name></element>
+    <element identifier="b" xsi:type="BusinessRole"><name>B</name></element>
+    <element identifier="c" xsi:type="BusinessRole"><name>Outside</name></element>
+  </elements>
+  <relationships>
+    <relationship identifier="r-ga" source="g" target="a" xsi:type="Aggregation"/>
+    <relationship identifier="r-gb" source="g" target="b" xsi:type="Composition"/>
+    <relationship identifier="r-ac" source="a" target="c" xsi:type="Assignment"/>
+  </relationships>
+  <views><diagrams><view identifier="v"><name>V</name>
+    <node identifier="n-g" xsi:type="Element" elementRef="g" x="400" y="400" w="120" h="55"/>
+    <node identifier="n-a" xsi:type="Element" elementRef="a" x="100" y="100" w="120" h="55"/>
+    <node identifier="n-b" xsi:type="Element" elementRef="b" x="260" y="100" w="120" h="55"/>
+    <node identifier="n-c" xsi:type="Element" elementRef="c" x="100" y="300" w="120" h="55"/>
+    <connection identifier="c-ga" xsi:type="Relationship" relationshipRef="r-ga" source="n-g" target="n-a"/>
+    <connection identifier="c-gb" xsi:type="Relationship" relationshipRef="r-gb" source="n-g" target="n-b"/>
+    <connection identifier="c-ac" xsi:type="Relationship" relationshipRef="r-ac" source="n-a" target="n-c"/>
+  </view></diagrams></views>
+</model>`;
+    const model = parseModel(xml);
+    const view = model.views[0];
+    const svg = renderView(view, model);
+    const group = view.nodes.find((node) => node.identifier === "n-g");
+    assert.ok(group);
+    assert.deepEqual(group.children.map((node) => node.identifier).sort(), ["n-a", "n-b"]);
+    assert.deepEqual([group.x, group.y, group.w, group.h], [80, 70, 320, 105], "frame encloses its members");
+    assert.match(svg, /data-element-id="n-a"[^>]*data-x="100" data-y="100"[^>]*data-parent-id="n-g"/, "members keep their place");
+    assert.doesNotMatch(svg, /data-element-id="c-ga"/);
+    assert.doesNotMatch(svg, /data-element-id="c-gb"/);
+    assert.match(svg, /data-element-id="c-ac"/, "other relationships are still drawn");
+    assert.ok(view.connections.some((conn) => conn.identifier === "c-ga"), "hidden, not removed");
+
+    // Idempotent: rendering again changes nothing.
+    assert.equal(renderView(view, model), svg);
   });
 
   it("synthesizes a drawable view from organizations when the file has no diagrams", async () => {

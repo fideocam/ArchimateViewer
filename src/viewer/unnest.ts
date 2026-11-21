@@ -4,36 +4,88 @@ const COMPACT_H = 55;
 const COMPACT_W = 160;
 const GAP = 16;
 
-export function unnestElementBoxes(view: DiagramView, model: ArchiMateModel): void {
-  view.nodes = explodeList(view.nodes, model, view);
+export interface UnnestOptions {
+  /**
+   * Which nested boxes may be pulled out of their parent element box. Defaults to all of them
+   * for exchange XML and none for Archi `.archimate` files, whose nesting is an authored layout.
+   */
+  only?: (node: DiagramNode) => boolean;
 }
 
-function isVisualContainer(node: DiagramNode): boolean {
-  return !node.elementRef && (node.xsiType === "Container" || node.xsiType === "Grouping");
+/** A box that left its parent element box: it now lives directly in `containerId`. */
+export interface UnnestMove {
+  node: DiagramNode;
+  /** Group/Container node id, or the view id for the diagram itself. */
+  containerId: string;
 }
 
-function explodeList(nodes: DiagramNode[], model: ArchiMateModel, view: DiagramView): DiagramNode[] {
+export interface UnnestResult {
+  moves: UnnestMove[];
+  /** Connections added to replace the visual nesting. */
+  connections: DiagramConnection[];
+  /** Relationships synthesized because the model had none between parent and child. */
+  relationships: ArchiMateRelationship[];
+}
+
+interface Context {
+  model: ArchiMateModel;
+  view: DiagramView;
+  only: (node: DiagramNode) => boolean;
+  moves: Map<string, UnnestMove>;
+  connections: DiagramConnection[];
+  relationships: ArchiMateRelationship[];
+}
+
+export function unnestElementBoxes(view: DiagramView, model: ArchiMateModel, options: UnnestOptions = {}): UnnestResult {
+  if (model.format === "archi" && !options.only) {
+    return { moves: [], connections: [], relationships: [] };
+  }
+  const ctx: Context = {
+    model,
+    view,
+    only: options.only || (() => true),
+    moves: new Map(),
+    connections: [],
+    relationships: []
+  };
+  view.nodes = explodeList(view.nodes, view.identifier, ctx);
+  return { moves: [...ctx.moves.values()], connections: ctx.connections, relationships: ctx.relationships };
+}
+
+/** Frames whose nesting is always kept: Groups/Containers and ArchiMate Grouping elements. */
+function isVisualContainer(node: DiagramNode, model: ArchiMateModel): boolean {
+  if (node.elementRef) {
+    return model.elements.get(node.elementRef)?.type === "Grouping";
+  }
+  return node.xsiType === "Container" || node.xsiType === "Grouping";
+}
+
+/** Flattens `nodes`, which all live in `containerId`, returning the new list for that container. */
+function explodeList(nodes: DiagramNode[], containerId: string, ctx: Context): DiagramNode[] {
   const out: DiagramNode[] = [];
   for (const node of nodes) {
-    if (isVisualContainer(node)) {
-      node.children = explodeList(node.children, model, view);
+    if (isVisualContainer(node, ctx.model)) {
+      node.children = explodeList(node.children, node.identifier, ctx);
       out.push(node);
       continue;
     }
-    const originX = node.x;
-    const originY = node.y;
-    const kids = explodeList(node.children, model, view);
-    node.children = [];
-    if (kids.length) {
+    const kids = explodeList(node.children, node.identifier, ctx);
+    const moving = kids.filter((kid) => ctx.only(kid));
+    node.children = kids.filter((kid) => !ctx.only(kid));
+    if (moving.length && !node.children.length && ctx.only(node)) {
       compactParent(node);
     }
     out.push(node);
-    for (const kid of kids) {
-      kid.x += originX;
-      kid.y += originY;
+    for (const kid of moving) {
+      kid.x += node.x;
+      kid.y += node.y;
       separateFromParent(node, kid);
       out.push(kid);
-      ensureRelationshipArrow(view, model, node, kid);
+      // Only the box it was drawn in is its real parent; later hops just carry it outward.
+      if (!ctx.moves.has(kid.identifier)) {
+        ensureRelationshipArrow(ctx, node, kid);
+      }
+      ctx.moves.set(kid.identifier, { node: kid, containerId });
     }
   }
   return out;
@@ -59,12 +111,8 @@ function overlaps(a: DiagramNode, b: DiagramNode): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-function ensureRelationshipArrow(
-  view: DiagramView,
-  model: ArchiMateModel,
-  parent: DiagramNode,
-  child: DiagramNode
-) {
+function ensureRelationshipArrow(ctx: Context, parent: DiagramNode, child: DiagramNode) {
+  const { model, view } = ctx;
   if (!parent.elementRef || !child.elementRef) {
     return;
   }
@@ -94,6 +142,7 @@ function ensureRelationshipArrow(
       target: child.elementRef
     };
     model.relationships.set(rel.identifier, rel);
+    ctx.relationships.push(rel);
   }
 
   const connection: DiagramConnection = {
@@ -105,6 +154,7 @@ function ensureRelationshipArrow(
     bendpoints: []
   };
   view.connections.push(connection);
+  ctx.connections.push(connection);
 }
 
 function findRelationship(

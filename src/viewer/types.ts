@@ -116,6 +116,8 @@ export interface DiagramConnection {
   bendpoints: Point[];
   sourceAttachment?: Point;
   targetAttachment?: Point;
+  /** Not drawn: the nesting already shows it (e.g. a Grouping and a member inside it). */
+  hidden?: boolean;
 }
 
 export interface DiagramView {

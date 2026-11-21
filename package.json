@@ -2,7 +2,7 @@
   "name": "archimate-viewer",
   "displayName": "ArchiMate Viewer",
   "description": "View Open Group ArchiMate Model Exchange and Archi .archimate files in VS Code, with an embeddable JavaScript viewer.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "annala-son",
   "author": "Annala & Son",
   "license": "SEE LICENSE IN LICENSE",

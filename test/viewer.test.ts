@@ -258,6 +258,26 @@ describe("NavigatedViewer", () => {
     viewer.destroy();
   });
 
+  it("shows the grabbed element's type while dragging it", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const viewer = new NavigatedViewer({ container });
+    await viewer.importXML(fixture);
+    const node = container.querySelector('[data-element-id="id-n-customer"]');
+    assert.ok(node);
+    const type = viewer.get("model").elements.get("id-customer")?.type;
+    assert.equal(type, "BusinessActor");
+
+    node.dispatchEvent(new DiagramPointerEvent("pointerdown", { bubbles: true, clientX: 0, clientY: 0, button: 0, pointerId: 1 }));
+    assert.equal(container.querySelector(".av-type-badge")?.textContent, "Business Actor");
+    container.dispatchEvent(new DiagramPointerEvent("pointermove", { bubbles: true, clientX: 30, clientY: 10, button: 0, pointerId: 1 }));
+    const badge = container.querySelector(".av-type-badge") as HTMLElement | null;
+    assert.equal(badge?.style.left, "44px");
+    container.dispatchEvent(new DiagramPointerEvent("pointerup", { bubbles: true, clientX: 30, clientY: 10, button: 0, pointerId: 1 }));
+    assert.equal(container.querySelector(".av-type-badge"), null);
+    viewer.destroy();
+  });
+
   it("hugs the diagram instead of adding a side pad, and keeps overflow visible", async () => {
     const container = document.createElement("div");
     document.body.appendChild(container);

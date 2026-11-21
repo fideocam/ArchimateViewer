@@ -110,6 +110,8 @@ Right: two sibling nodes, a relationship with **source/target attributes**, and 
 
 A `<node xsi:type="Container">` without `elementRef` may wrap nodes as a **visual** layer frame (Business / Application / Technology). That is not a model nesting.
 
+**Exception — Grouping:** a `Grouping` element is always drawn as a box *around* its members. Nest the member nodes inside the Grouping node (give it bounds that enclose them) and do **not** add `<connection>`s between the Grouping and its members; keep the Aggregation/Composition relationships in `<relationships>`. The viewer hides Grouping-to-member arrows and pulls related sibling boxes into the Grouping frame anyway.
+
 ### Relationship source and target MUST be attributes
 
 Always emit `source` and `target` as **attributes on the `<relationship>` element**. The viewer reads `attr(el, "source")` and `attr(el, "target")` only — nested children are skipped and the relationship is dropped.
@@ -218,7 +220,8 @@ If the file starts with `PK` (binary), it is a zip archive that Archi writes whe
 - The **target** box must list the connection id in its space-separated `targetConnections` attribute. Archi will not reopen a file where `sourceConnection` and `targetConnections` disagree. Update both whenever you add, delete or reconnect a connection.
 - Only add a relationship to a diagram if it exists in the `relations` folder. Only add a box if its element exists.
 - Group frame: `<child xsi:type="archimate:Group" name="Business Layer">` (no `archimateElement`). Note: `<child xsi:type="archimate:Note">` with a `<content>` child. Link to another view: `<child xsi:type="archimate:DiagramModelReference" model="<view id>">`.
-- Arrows, not nesting: put related element boxes side by side with a connection, as for exchange XML. Only nest boxes inside a `Group`.
+- Arrows, not nesting: put related element boxes side by side with a connection, as for exchange XML. Only nest boxes inside a `Group` or a `Grouping` element box (a Grouping always encloses its members; don't draw connections from it to boxes inside it). The viewer keeps the existing layout of a `.archimate` file as saved, but if your edit nests a **new** box inside an element box, the viewer moves it out next to its parent, connects them with an arrow (adding a Composition relationship if none exists) and writes that back to the file.
+- Place new boxes in free space with real `<bounds>`; do not move or resize existing boxes unless asked.
 - Bendpoints (`<bendpoint startX startY endX endY/>`) are offsets from the source and target box centres. Leave them out on new connections, and remove them from a connection whose ends you move.
 
 ### Deleting in `.archimate`
